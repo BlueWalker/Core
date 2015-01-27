@@ -14,6 +14,10 @@ public class RectCoordinates {
 
     /**
      * Class constructor. Sets the x, y, and z coordinates
+     *
+     * @param x int
+     * @param y int
+     * @param z int
      */
     public RectCoordinates(int x, int y, int z) {
         this.x = x;
