@@ -1,4 +1,4 @@
-package walker.blue.core.lib.rect;
+package walker.blue.core.lib.path;
 
 /**
  * Class representing the coordinate system being used
