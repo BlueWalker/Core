@@ -1,28 +1,27 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.0'
+    }
+}
+
 apply plugin: 'java'
 
 sourceCompatibility = JavaVersion.VERSION_1_7
 targetCompatibility = JavaVersion.VERSION_1_7
 
-repositories {
-    jcenter()
-}
-
-dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-}
-
 task wrapper(type: Wrapper) {
     gradleVersion = '2.2.1'
 }
 
-
 apply plugin: 'maven'
 
-def groupId = 'blue.walker'
-def artifactId = 'core'
-def version = '0.1.1'
-
-def localReleaseDest = "${buildDir}/release/${version}"
+group = project.GROUP
+version = project.VERSION
+description = project.DESCRIPTION
 
 task sourcesJar(type: Jar, dependsOn: classes) {
     classifier = 'sources'
@@ -39,32 +38,78 @@ task testsJar(type: Jar) {
     from sourceSets.test.output
 }
 
-uploadArchives {
-    repositories.mavenDeployer {
-        pom.groupId = groupId
-        pom.artifactId = artifactId
-        pom.version = version
-        // Add other pom properties here if you want (developer details / licenses)
-        repository(url: "file://${localReleaseDest}")
+def hasBintrayProperties() {
+    return project.hasProperty('BINTRAY_USERNAME') && project.hasProperty('BINTRAY_KEY')
+}
+
+if (hasBintrayProperties()) {
+    apply plugin: 'maven-publish'
+    apply plugin: 'com.jfrog.bintray'
+
+    bintrayUpload.dependsOn jar, sourcesJar, javadocJar, testsJar
+    bintrayUpload.dependsOn("generatePomFileForMavenPublication")
+
+    publish.dependsOn jar, sourcesJar, javadocJar, testsJar
+    publish.dependsOn("generatePomFileForMavenPublication")
+
+    publishing {
+        publications {
+            maven(MavenPublication) {
+                from components.java
+                artifact sourcesJar
+                artifact javadocJar
+                artifact testsJar
+
+                pom.withXml {
+                    def Node root = asNode()
+                    root.appendNode('name', project.BINTRAY_NAME)
+                    root.appendNode('description', project.description)
+                    root.appendNode('url', project.URL)
+
+                    def issues = root.appendNode('issueManagement')
+                    issues.appendNode('system', 'github')
+                    issues.appendNode('url', project.ISSUES_URL)
+
+                    def scm = root.appendNode('scm')
+                    scm.appendNode('url', project.SCM)
+                    scm.appendNode('connection', project.CONNECTION)
+                    scm.appendNode('developerConnection', project.DEV_CONNECTION)
+
+                    def license = root.appendNode('licenses').appendNode('license')
+                    license.appendNode('name', 'MIT')
+                    license.appendNode('url', 'http://opensource.org/licenses/mit-license.php')
+                    license.appendNode('distribution', 'repo')
+
+                    def dev = root.appendNode('developers').appendNode('developer')
+                    dev.appendNode('id', project.ORG)
+                    dev.appendNode('name', project.ORG)
+                    dev.appendNode('organization', project.ORG)
+                    dev.appendNode('organizationUrl', project.ORG_URL)
+                }
+            }
+
+        }
     }
-}
 
-task zipRelease(type: Zip) {
-    from localReleaseDest
-    destinationDir buildDir
-    archiveName "release-${version}.zip"
-}
-
-task generateRelease << {
-    println "Release ${version} can be found at ${localReleaseDest}/"
-    println "Release ${version} zipped can be found ${buildDir}/release-${version}.zip"
-}
-
-generateRelease.dependsOn(uploadArchives)
-generateRelease.dependsOn(zipRelease)
-
-
-artifacts {
-    archives sourcesJar
-    archives javadocJar
+    bintray {
+        user = BINTRAY_USERNAME
+        key = BINTRAY_KEY
+        publications = ['maven']
+        publish = true
+        pkg {
+            repo = 'maven'
+            name = project.BINTRAY_NAME
+            desc = project.description
+            websiteUrl = project.URL
+            issueTrackerUrl = project.ISSUES_URL
+            vcsUrl = project.SCM
+            licenses = ['MIT']
+            labels = project.LABELS
+            publicDownloadNumbers = true
+            version {
+                name = project.version
+                desc = project.description
+            }
+        }
+    }
 }

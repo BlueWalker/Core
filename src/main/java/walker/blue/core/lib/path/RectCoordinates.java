@@ -27,6 +27,7 @@ public class RectCoordinates {
 
     /**
      * Get the value of the x coordinate
+     *
      * @return int
      */
     public int getXValue() {
