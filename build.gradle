@@ -29,6 +29,9 @@ repositories {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile LC.checkLocal('blue.walker:beacon-lib:0.1.+', 'BeaconLib')
+    // NOTE: These two remotes dont really work yet. ``
+    compile LC.checkLocal('blue.walker:Pathfinding:0.1.+', 'Pathfinding')
+    compile LC.checkLocal('blue.walker:Trilateration:0.1.+', 'Trilateration')
 }
 
 android.libraryVariants.all { variant ->
