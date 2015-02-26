@@ -62,11 +62,7 @@ task sourcesJar(type: Jar) {
 
 task androidJavadocs(type: Javadoc) {
     source = android.sourceSets.main.java.srcDirs
-    /*
-     * TODO: Getting error complaining that setTargetInfo should be called before
-     *       getBootClasspath. I should look into this
-     * classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
-     */
+    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
 }
 
 task javadocJar(type: Jar, dependsOn: androidJavadocs) {
