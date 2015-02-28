@@ -1,6 +1,6 @@
 package walker.blue.core.lib.types;
 
-import walker.blue.core.lib.path.RectCoordinates;
+import walker.blue.path.lib.RectCoordinates;
 
 /**
  * Class representing a Destination within a building
