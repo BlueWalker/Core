@@ -28,6 +28,8 @@ repositories {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile 'com.amazonaws:aws-android-sdk-core:2.1.+'
+    compile 'com.amazonaws:aws-android-sdk-ddb:2.1.+'
     compile LC.checkLocal('blue.walker:beacon-lib:0.1.+', 'BeaconLib')
     // NOTE: These two remotes dont really work yet. ``
     compile LC.checkLocal('blue.walker:Pathfinding:0.1.+', 'Pathfinding')
