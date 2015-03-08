@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
 
 import walker.blue.beacon.lib.beacon.Beacon;
 import walker.blue.beacon.lib.client.BeaconScanClient;
@@ -16,7 +18,7 @@ import walker.blue.core.lib.factories.BeaconClientFactory;
  * Class in charge of detecting the Building ID for the building in which
  * the user is currently located
  */
-public class BuildingDetector {
+public class BuildingDetector implements Callable<BuildingDetector.Output> {
 
     /**
      * Max time (in milliseconds) which the client will scan for Beacons
@@ -30,7 +32,7 @@ public class BuildingDetector {
      * Amount of time (in milliseconds) the class will wait until checking the
      * set of beacons found
      */
-    private static final int SLEEP_TIME = 200;
+    private static final int SLEEP_TIME = 100;
     /**
      * Client used to scan for Beacons
      */
@@ -51,13 +53,7 @@ public class BuildingDetector {
         this.beaconScanClient = clientFactory.buildClient(this.beacons, SCAN_TIME);
     }
 
-    /**
-     * Scans for Beacons and uses them to determine the building ID for the
-     * building the user is currently in
-     *
-     * @return String
-     */
-    public String getBuildingID() {
+    public Output call() {
         if (!beacons.isEmpty()) {
             beacons.clear();
         }
@@ -69,10 +65,7 @@ public class BuildingDetector {
                 Thread.sleep(SLEEP_TIME, 0);
             } catch (final InterruptedException e) {/*TODO*/}
         }
-        if (this.beaconScanClient.isScanning()) {
-            this.beaconScanClient.stopScanning();
-        }
-        return getGreatestOccurance(beacons);
+        return new Output(null, this.getGreatestOccurance(beacons));
     }
 
     /**
@@ -100,5 +93,24 @@ public class BuildingDetector {
             }
         }
         return result;
+    }
+
+    public class Output {
+
+        private Future<Set<Beacon>> futureBeacons;
+        private String buildingID;
+
+        private Output(final Future<Set<Beacon>> futureBeacons, final String buildingID) {
+            this.futureBeacons = futureBeacons;
+            this.buildingID = buildingID;
+        }
+
+        public Future<Set<Beacon>> getFuture() {
+            return this.futureBeacons;
+        }
+
+        public String getBuildingID() {
+            return this.buildingID;
+        }
     }
 }
