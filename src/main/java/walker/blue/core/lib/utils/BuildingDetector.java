@@ -11,7 +11,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 
 import walker.blue.beacon.lib.beacon.Beacon;
-import walker.blue.beacon.lib.client.BeaconScanClient;
+import walker.blue.core.lib.beacon.SyncBeaconScanClient;
 import walker.blue.core.lib.factories.BeaconClientFactory;
 
 /**
@@ -36,7 +36,7 @@ public class BuildingDetector implements Callable<BuildingDetector.Output> {
     /**
      * Client used to scan for Beacons
      */
-    private BeaconScanClient beaconScanClient;
+    private SyncBeaconScanClient beaconScanClient;
     /**
      * Set in which the beacons scanned will be stored
      */
@@ -50,22 +50,22 @@ public class BuildingDetector implements Callable<BuildingDetector.Output> {
     public BuildingDetector(final Context context) {
         final BeaconClientFactory clientFactory = new BeaconClientFactory(context);
         this.beacons = new HashSet<>();
-        this.beaconScanClient = clientFactory.buildClient(this.beacons, SCAN_TIME);
+        this.beaconScanClient = new SyncBeaconScanClient(context, this.beacons);
     }
 
     public Output call() {
         if (!beacons.isEmpty()) {
             beacons.clear();
         }
-        this.beaconScanClient.startScanning();
+        final Future<Set<Beacon>> futureBeacons = this.beaconScanClient.startScan();
         // TODO make this better
-        while(this.beacons.size() < MIN_BEACONS && this.beaconScanClient.isScanning()) {
+        while(this.beacons.size() < MIN_BEACONS) {
             try {
                 Log.d("#######", "Sleeping: currently have " + beacons.size() + " beacons");
                 Thread.sleep(SLEEP_TIME, 0);
             } catch (final InterruptedException e) {/*TODO*/}
         }
-        return new Output(null, this.getGreatestOccurance(beacons));
+        return new Output(futureBeacons, this.getGreatestOccurance(beacons));
     }
 
     /**
