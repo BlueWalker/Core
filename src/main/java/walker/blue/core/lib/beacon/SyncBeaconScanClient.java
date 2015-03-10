@@ -34,7 +34,9 @@ public class SyncBeaconScanClient {
     private static final String LOG_THREAD_UNBLOCKED = "Locked thread (id # %d) unblocked";
     private static final String LOG_FAILED_ACQUIRE = "Failed acquiring semaphore - %s";
     private static final String LOG_SCAN_START = "Starting syncronous scan in thread id # %d";
-
+    private static final String LOG_INITIAL_LOCKING_BD = "Acquiring initial BuildingDetector semaphore";
+    private static final String LOG_BD_RELEASE = "Releasing BuildingDetector semaphore";
+    private static final String LOG_BD_LATE_RELEASE = "Not ebough beacons found. Releasing BD lock now";
     /**
      * Default scan time (in ms) for the client
      */
@@ -44,10 +46,16 @@ public class SyncBeaconScanClient {
      */
     private static final int NUMBER_OF_PERMITS = 1;
 
+    private int minNumOfBeacons = 1;
     /**
      * Semaphore used to lock the thread
      */
     private Semaphore lock;
+    /**
+     * Semaphore used to lock the building detector until the necessary number
+     * of beacons are found
+     */
+    private Semaphore bdLock;
     /**
      * Collection where the beacons are stored
      */
@@ -71,6 +79,10 @@ public class SyncBeaconScanClient {
             if (beacon != null) {
                 beacons.add(beacon);
             }
+            if (bdLock != null && beacons.size() >= minNumOfBeacons && bdLock.hasQueuedThreads()) {
+                Log.d(this.getClass().getName(), LOG_BD_RELEASE);
+                bdLock.release();
+            }
         }
     };
 
@@ -80,6 +92,10 @@ public class SyncBeaconScanClient {
     private ScanEndUserCallback unlockCallback = new ScanEndUserCallback() {
         @Override
         public void execute() {
+            if (bdLock.hasQueuedThreads()) {
+                Log.d(this.getClass().getName(), LOG_BD_LATE_RELEASE);
+                bdLock.release();
+            }
             Log.d(this.getClass().getName(),  LOG_RELEASE_THREAD);
             lock.release();
         }
@@ -114,7 +130,7 @@ public class SyncBeaconScanClient {
      * @param beacons The collection where the beacons will be placed
      */
     public SyncBeaconScanClient(final Context context, final Set<Beacon> beacons) {
-        this(context, beacons, DEFAULT_SCAN_TIME);
+        this(context, beacons, DEFAULT_SCAN_TIME, 0, null);
     }
 
     /**
@@ -125,7 +141,13 @@ public class SyncBeaconScanClient {
      * @param beacons The collection where the beacons will be placed
      * @param scanTime Time in ms that the client will scan
      */
-    public SyncBeaconScanClient(final Context context, final Set<Beacon> beacons, final int scanTime) {
+    public SyncBeaconScanClient(final Context context,
+                                final Set<Beacon> beacons,
+                                final int scanTime,
+                                final int minNumOfBeacons,
+                                final Semaphore bdLock) {
+        this.minNumOfBeacons = minNumOfBeacons;
+        this.bdLock = bdLock;
         this.lock = new Semaphore(NUMBER_OF_PERMITS);
         this.beacons = beacons;
         this.executorService = Executors.newSingleThreadExecutor();
@@ -146,6 +168,10 @@ public class SyncBeaconScanClient {
         try {
             Log.d(this.getClass().getName(), LOG_INITIAL_LOCKING_THREAD);
             lock.acquire();
+            if (bdLock != null) {
+                Log.d(this.getClass().getName(), LOG_INITIAL_LOCKING_BD);
+                bdLock.acquire();
+            }
         } catch (Exception e) {
             Log.d(this.getClass().getName(), String.format(LOG_FAILED_ACQUIRE, e.getMessage()));
             return null;
