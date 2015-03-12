@@ -1,26 +1,23 @@
 package walker.blue.core.lib.ddb;
 
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
+import com.amazonaws.services.dynamodbv2.document.DynamoDB;
+import com.amazonaws.services.dynamodbv2.document.Item;
+import com.amazonaws.services.dynamodbv2.document.Table;
+import com.amazonaws.services.dynamodbv2.document.spec.GetItemSpec;
 import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import com.amazonaws.services.dynamodbv2.model.GetItemResult;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import walker.blue.core.lib.types.Building;
+import walker.blue.core.lib.utils.Json2Building;
+
 /**
  * Wrapper for the DynamoDB client
  */
 public class DynamoDBWrapper {
-
-    /**
-     * Name for the Building ID attribute
-     */
-    private static final String BUILDING_ID = "BuildingID";
-    /**
-     * Name of the DynamoDB table
-     */
-    private static final String TABLE_NAME = "BlueWalker";
-
     /**
      * DynamoDB client being used
      */
@@ -42,11 +39,42 @@ public class DynamoDBWrapper {
      */
     public GetItemResult getBuildingData(final String buildingID) {
         final Map<String, AttributeValue> attributes = new AttributeMapBuilder()
-                .addAttribute(BUILDING_ID, buildingID)
+                .addAttribute(DdbCommon.BUILDING_ID, buildingID)
                 .build();
-        final GetItemResult result = this.client.getItem(TABLE_NAME, attributes);
+        final GetItemResult result = this.client.getItem(DdbCommon.TABLE_NAME, attributes);
         //TODO handle exceptions
         return result;
+    }
+
+    public void putBuilding(final Building building) {
+        // Will validate that the string can be parsed prior to inserting and
+        // if of a correct format, will use the uuid in the file for inserting
+        // into the database.
+        if(building != null) {
+            String json = new Json2Building().toString(building);
+
+            DynamoDB dynamo = new DynamoDB(client);
+
+            Table table = dynamo.getTable(DdbCommon.TABLE_NAME);
+
+            Item item = new Item()
+                    .withPrimaryKey(DdbCommon.BUILDING_ID, building.getUUID())
+                    .withJSON(DdbCommon.JSON_DOCUMENT, json);
+            table.putItem(item);
+        }
+    }
+
+    public Building getBuilding(String uuid) {
+        DynamoDB dynamo = new DynamoDB(client);
+
+        Table table = dynamo.getTable(DdbCommon.TABLE_NAME);
+
+        Item documentItem =
+                table.getItem(new GetItemSpec()
+                        .withPrimaryKey(DdbCommon.BUILDING_ID, uuid)
+                        .withAttributesToGet(DdbCommon.JSON_DOCUMENT));
+
+        return new Json2Building().toBuilding(documentItem.getJSONPretty(DdbCommon.JSON_DOCUMENT));
     }
 
     /**
