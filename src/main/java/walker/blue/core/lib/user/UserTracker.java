@@ -43,11 +43,11 @@ public class UserTracker {
     // User location is in real building coordinates, so convert the nodes' coordinates
     // to real coordinates so calculations are done on one coordinate system.
     public void updateUserState(RectCoordinates userLocation) {
-        RectCoordinates realPrevNodeLoc = nodeMapper.getRealLocation(previousNode.location());
-        RectCoordinates realNextNodeLoc = nodeMapper.getRealLocation(nextNode.location());
+        RectCoordinates realPrevNodeLoc = nodeMapper.getRealLocation(previousNode.getLocation());
+        RectCoordinates realNextNodeLoc = nodeMapper.getRealLocation(nextNode.getLocation());
         
         if(userState != UserState.ARRIVED) {
-            if(realNextNodeLoc.z() != realPrevNodeLoc.z()) {
+            if(realNextNodeLoc.getZ() != realPrevNodeLoc.getZ()) {
                 // The previous and next nodes are on different floors.
                 userStateDifferentFloorNodes(userLocation, realPrevNodeLoc, realNextNodeLoc);
             }
@@ -104,9 +104,9 @@ public class UserTracker {
     private boolean isDestinationReached(RectCoordinates userLocation) {
         // The destination is reached when the user comes within
         // destinationRadius of the destination node.
-        RectCoordinates destinationLoc = nodeMapper.getRealLocation(path.get(path.size() - 1).location());
-        double xDiff = destinationLoc.x() - userLocation.x();
-        double yDiff = destinationLoc.y() - userLocation.y();
+        RectCoordinates destinationLoc = nodeMapper.getRealLocation(path.get(path.size() - 1).getLocation());
+        double xDiff = destinationLoc.getX() - userLocation.getX();
+        double yDiff = destinationLoc.getY() - userLocation.getY();
         double distance = Math.sqrt(Math.pow(xDiff, 2) + Math.pow(yDiff, 2));
         
         if(distance <= zoneOffset) {
@@ -123,29 +123,29 @@ public class UserTracker {
         // values to determine if the user is off-course while they are in the
         // transition from the previous node's floor to the next node's floor.
         double minX, minY, maxX, maxY;
-        if(realPrevNodeLoc.x() < realNextNodeLoc.x()) {
-            minX = realPrevNodeLoc.x() - zoneOffset;
-            maxX = realNextNodeLoc.x() + zoneOffset;
+        if(realPrevNodeLoc.getX() < realNextNodeLoc.getX()) {
+            minX = realPrevNodeLoc.getX() - zoneOffset;
+            maxX = realNextNodeLoc.getX() + zoneOffset;
         }
         else {
-            minX = realNextNodeLoc.x() - zoneOffset;
-            maxX = realPrevNodeLoc.x() + zoneOffset;
+            minX = realNextNodeLoc.getX() - zoneOffset;
+            maxX = realPrevNodeLoc.getX() + zoneOffset;
         }
-        if(realPrevNodeLoc.y() < realNextNodeLoc.y()) {
-            minY = realPrevNodeLoc.y() - zoneOffset;
-            maxY = realNextNodeLoc.y() + zoneOffset;
+        if(realPrevNodeLoc.getY() < realNextNodeLoc.getY()) {
+            minY = realPrevNodeLoc.getY() - zoneOffset;
+            maxY = realNextNodeLoc.getY() + zoneOffset;
         }
         else {
-            minY = realNextNodeLoc.y() - zoneOffset;
-            maxY = realPrevNodeLoc.y() + zoneOffset;
+            minY = realNextNodeLoc.getY() - zoneOffset;
+            maxY = realPrevNodeLoc.getY() + zoneOffset;
         }
         
         if(distance(userLocation, realNextNodeLoc) <= zoneOffset) {
             // User is within the radius of the next node, so update the path progress
             updatePathProgress(nextNode, path.get(path.indexOf(nextNode) + 1));
         }
-        else if(userLocation.x() < minX || userLocation.x() > maxX ||
-                userLocation.y() < minY || userLocation.y() > maxY) {
+        else if(userLocation.getX() < minX || userLocation.getX() > maxX ||
+                userLocation.getY() < minY || userLocation.getY() > maxY) {
             // User has not reached the next node, but has gone out of bounds from
             // the assumed rectangular boundary of the stairwell/elevator. In going
             // out of bounds, it is assumed that they are on another floor and are off-course.
@@ -158,7 +158,7 @@ public class UserTracker {
     }
     
     private void userStateWithZeroSlopeLine(RectCoordinates userLocation, RectCoordinates realPrevNodeLoc, RectCoordinates realNextNodeLoc) {
-        double b = realPrevNodeLoc.y();
+        double b = realPrevNodeLoc.getY();
         double bottomParallelWarningY = b - zoneOffset;
         double bottomParallelOffCourseY = bottomParallelWarningY - zoneOffset;
         double topParallelWarningY = b + zoneOffset;
@@ -170,25 +170,25 @@ public class UserTracker {
         // Checks the two different cases. The first one being if the previous
         // node is on the left and the next node is on the right. The second one
         // is when the next node is on the left and the previous node is on the right.
-        if(realPrevNodeLoc.x() < realNextNodeLoc.x()) {
-            leftPerpendicularOffCourseX = realPrevNodeLoc.x() - zoneOffset;
-            rightPerpendicularOffCourseX = realNextNodeLoc.x() + zoneOffset;
+        if(realPrevNodeLoc.getX() < realNextNodeLoc.getX()) {
+            leftPerpendicularOffCourseX = realPrevNodeLoc.getX() - zoneOffset;
+            rightPerpendicularOffCourseX = realNextNodeLoc.getX() + zoneOffset;
             
-            if(userLocation.x() < realNextNodeLoc.x() &&
-                    userLocation.x() > realPrevNodeLoc.x() &&
-                    userLocation.y() < topParallelWarningY &&
-                    userLocation.y() > bottomParallelWarningY) {
+            if(userLocation.getX() < realNextNodeLoc.getX() &&
+                    userLocation.getX() > realPrevNodeLoc.getX() &&
+                    userLocation.getY() < topParallelWarningY &&
+                    userLocation.getY() > bottomParallelWarningY) {
                 // User is on course
                 userState = UserState.ON_COURSE;
             }
-            else if(userLocation.y() < topParallelOffCourseY &&
-                    userLocation.y() > bottomParallelOffCourseY) {
-                if(userLocation.x() > realNextNodeLoc.x()) {
+            else if(userLocation.getY() < topParallelOffCourseY &&
+                    userLocation.getY() > bottomParallelOffCourseY) {
+                if(userLocation.getX() > realNextNodeLoc.getX()) {
                     // User has passed the nextNode, so update their progress
                     updatePathProgress(nextNode, path.get(path.indexOf(nextNode) + 1));
                 }
-                else if(userLocation.x() < rightPerpendicularOffCourseX &&
-                        userLocation.x() > leftPerpendicularOffCourseX) {
+                else if(userLocation.getX() < rightPerpendicularOffCourseX &&
+                        userLocation.getX() > leftPerpendicularOffCourseX) {
                     // User is in the warning zone
                     // Checks that the x and y values are inside the off course boundaries
                     userState = UserState.IN_WARNING_ZONE;
@@ -205,25 +205,25 @@ public class UserTracker {
                 userState = UserState.OFF_COURSE;
             }
         }
-        else if(realPrevNodeLoc.x() > realNextNodeLoc.x()) {
-            leftPerpendicularOffCourseX = realNextNodeLoc.x() - zoneOffset;
-            rightPerpendicularOffCourseX = realPrevNodeLoc.x() + zoneOffset;
+        else if(realPrevNodeLoc.getX() > realNextNodeLoc.getX()) {
+            leftPerpendicularOffCourseX = realNextNodeLoc.getX() - zoneOffset;
+            rightPerpendicularOffCourseX = realPrevNodeLoc.getX() + zoneOffset;
             
-            if(userLocation.x() > realNextNodeLoc.x() &&
-                    userLocation.x() < realPrevNodeLoc.x() &&
-                    userLocation.y() < topParallelWarningY &&
-                    userLocation.y() > bottomParallelWarningY) {
+            if(userLocation.getX() > realNextNodeLoc.getX() &&
+                    userLocation.getX() < realPrevNodeLoc.getX() &&
+                    userLocation.getY() < topParallelWarningY &&
+                    userLocation.getY() > bottomParallelWarningY) {
                 // User is on course
                 userState = UserState.ON_COURSE;
             }
-            else if(userLocation.y() < topParallelOffCourseY &&
-                    userLocation.y() > bottomParallelOffCourseY) {
-                if(userLocation.x() < realNextNodeLoc.x()) {
+            else if(userLocation.getY() < topParallelOffCourseY &&
+                    userLocation.getY() > bottomParallelOffCourseY) {
+                if(userLocation.getX() < realNextNodeLoc.getX()) {
                     // User has passed the nextNode, so update their progress
                     updatePathProgress(nextNode, path.get(path.indexOf(nextNode) + 1));
                 }
-                else if(userLocation.x() < rightPerpendicularOffCourseX &&
-                        userLocation.x() > leftPerpendicularOffCourseX) {
+                else if(userLocation.getX() < rightPerpendicularOffCourseX &&
+                        userLocation.getX() > leftPerpendicularOffCourseX) {
                     // User is in the warning zone
                     // Checks that the x and y values are inside the off course boundaries
                     userState = UserState.IN_WARNING_ZONE;
@@ -247,32 +247,32 @@ public class UserTracker {
     
     private void userStateWithUndefinedSlopeLine(RectCoordinates userLocation, RectCoordinates realPrevNodeLoc, RectCoordinates realNextNodeLoc) {
         // Relative to an two-dimensional top-down view of the floor
-        double leftParallelWarningX = realPrevNodeLoc.x() - zoneOffset;
+        double leftParallelWarningX = realPrevNodeLoc.getX() - zoneOffset;
         double leftParallelOffCourseX = leftParallelWarningX - zoneOffset;
-        double rightParallelWarningX = realPrevNodeLoc.x() + zoneOffset;
+        double rightParallelWarningX = realPrevNodeLoc.getX() + zoneOffset;
         double rightParallelOffCourseX = rightParallelWarningX + zoneOffset;
         
-        if(realPrevNodeLoc.y() < realNextNodeLoc.y()) {
-            double bottomPerpendicularOffCourseY = realPrevNodeLoc.y() - zoneOffset;
-            double topPerpendicularOffCourseY = realNextNodeLoc.y() + zoneOffset;
+        if(realPrevNodeLoc.getY() < realNextNodeLoc.getY()) {
+            double bottomPerpendicularOffCourseY = realPrevNodeLoc.getY() - zoneOffset;
+            double topPerpendicularOffCourseY = realNextNodeLoc.getY() + zoneOffset;
             
-            if(userLocation.x() > leftParallelWarningX &&
-                    userLocation.x() < rightParallelWarningX &&
-                    userLocation.y() < realNextNodeLoc.y() &&
-                    userLocation.y() > realPrevNodeLoc.y()) {
+            if(userLocation.getX() > leftParallelWarningX &&
+                    userLocation.getX() < rightParallelWarningX &&
+                    userLocation.getY() < realNextNodeLoc.getY() &&
+                    userLocation.getY() > realPrevNodeLoc.getY()) {
                 // User is on course
                 userState = UserState.ON_COURSE;
                 System.out.println("Undefined slope Next node Smaller y: User is on course");
             }
-            else if(userLocation.x() > leftParallelOffCourseX &&
-                    userLocation.x() < rightParallelOffCourseX) {
-                if(userLocation.y() >= realNextNodeLoc.y()) {
+            else if(userLocation.getX() > leftParallelOffCourseX &&
+                    userLocation.getX() < rightParallelOffCourseX) {
+                if(userLocation.getY() >= realNextNodeLoc.getY()) {
                     // User has passed the nextNode, so update their progress
                     updatePathProgress(nextNode, path.get(path.indexOf(nextNode) + 1));
                     System.out.println("Undefined slope Next node Smaller y: User passed the next node");
                 }
-                else if(userLocation.y() > bottomPerpendicularOffCourseY &&
-                        userLocation.y() < topPerpendicularOffCourseY) {
+                else if(userLocation.getY() > bottomPerpendicularOffCourseY &&
+                        userLocation.getY() < topPerpendicularOffCourseY) {
                     // User is in the warning zone
                     // Checks that the x and y values are inside the off course boundaries
                     userState = UserState.IN_WARNING_ZONE;
@@ -292,25 +292,25 @@ public class UserTracker {
                 System.out.println("Undefined slope Next node Smaller y: User is off course due to x");
             }
         }
-        else if(realPrevNodeLoc.y() > realNextNodeLoc.y()) {
-            double bottomPerpendicularOffCourseY = realNextNodeLoc.y() - zoneOffset;
-            double topPerpendicularOffCourseY = realPrevNodeLoc.y() + zoneOffset;
+        else if(realPrevNodeLoc.getY() > realNextNodeLoc.getY()) {
+            double bottomPerpendicularOffCourseY = realNextNodeLoc.getY() - zoneOffset;
+            double topPerpendicularOffCourseY = realPrevNodeLoc.getY() + zoneOffset;
             
-            if(userLocation.x() < rightParallelWarningX &&
-                    userLocation.x() > leftParallelWarningX &&
-                    userLocation.y() < realPrevNodeLoc.y() &&
-                    userLocation.y() > realNextNodeLoc.y()) {
+            if(userLocation.getX() < rightParallelWarningX &&
+                    userLocation.getX() > leftParallelWarningX &&
+                    userLocation.getY() < realPrevNodeLoc.getY() &&
+                    userLocation.getY() > realNextNodeLoc.getY()) {
                 // User is on course
                 userState = UserState.ON_COURSE;
             }
-            else if(userLocation.x() > leftParallelOffCourseX &&
-                    userLocation.x() < rightParallelOffCourseX) {
-                if(userLocation.y() < realNextNodeLoc.y()) {
+            else if(userLocation.getX() > leftParallelOffCourseX &&
+                    userLocation.getX() < rightParallelOffCourseX) {
+                if(userLocation.getY() < realNextNodeLoc.getY()) {
                  // User has passed the nextNode, so update their progress
                     updatePathProgress(nextNode, path.get(path.indexOf(nextNode) + 1));
                 }
-                else if(userLocation.y() > bottomPerpendicularOffCourseY &&
-                        userLocation.y() < topPerpendicularOffCourseY) {
+                else if(userLocation.getY() > bottomPerpendicularOffCourseY &&
+                        userLocation.getY() < topPerpendicularOffCourseY) {
                     // User is in the warning zone
                     // Checks that the x and y values are inside the off course boundaries
                     userState = UserState.IN_WARNING_ZONE;
@@ -334,7 +334,7 @@ public class UserTracker {
     
     private void userStateWithOtherSlopeLine(RectCoordinates userLocation, double slope, RectCoordinates realPrevNodeLoc, RectCoordinates realNextNodeLoc) {
         double c = calculateC(slope);
-        double lineBetweenAAndB = slope*(userLocation.x() - realPrevNodeLoc.x()) + realPrevNodeLoc.y();
+        double lineBetweenAAndB = slope*(userLocation.getX() - realPrevNodeLoc.getX()) + realPrevNodeLoc.getY();
         
         double bottomParallelWarningY = lineBetweenAAndB - c;
         double bottomParallelOffCourseY = bottomParallelWarningY - c;
@@ -345,27 +345,27 @@ public class UserTracker {
         // lines change depending on these two cases.
         // Case 1) The previous node's y is less than the next node's y
         // Case 2) The previous node's y is greater than the next node's y
-        if(realPrevNodeLoc.y() < realNextNodeLoc.y()) {
-            double bottomPerpendicularWarningY = (1/slope)*(userLocation.x() - realPrevNodeLoc.x()) + realPrevNodeLoc.y();
+        if(realPrevNodeLoc.getY() < realNextNodeLoc.getY()) {
+            double bottomPerpendicularWarningY = (1/slope)*(userLocation.getX() - realPrevNodeLoc.getX()) + realPrevNodeLoc.getY();
             double bottomPerpendicularOffCourseY = bottomPerpendicularWarningY - c;
-            double topPerpendicularWarningY = (1/slope)*(userLocation.x() - realNextNodeLoc.x()) + realNextNodeLoc.y();
+            double topPerpendicularWarningY = (1/slope)*(userLocation.getX() - realNextNodeLoc.getX()) + realNextNodeLoc.getY();
             double topPerpendicularOffCourseY = topPerpendicularWarningY + c;
             
-            if(userLocation.y() < topParallelWarningY &&
-                    userLocation.y() > bottomParallelWarningY &&
-                    userLocation.y() < topPerpendicularWarningY &&
-                    userLocation.y() > bottomPerpendicularWarningY) {
+            if(userLocation.getY() < topParallelWarningY &&
+                    userLocation.getY() > bottomParallelWarningY &&
+                    userLocation.getY() < topPerpendicularWarningY &&
+                    userLocation.getY() > bottomPerpendicularWarningY) {
                 // User is on course
                 userState = UserState.ON_COURSE;
             }
-            else if(userLocation.y() < topParallelOffCourseY &&
-                    userLocation.y() > bottomParallelOffCourseY) {
-                if(userLocation.y() > topPerpendicularWarningY) {
+            else if(userLocation.getY() < topParallelOffCourseY &&
+                    userLocation.getY() > bottomParallelOffCourseY) {
+                if(userLocation.getY() > topPerpendicularWarningY) {
                     // User has passed the nextNode, so update their progress
                     updatePathProgress(nextNode, path.get(path.indexOf(nextNode) + 1));
                 }
-                else if(userLocation.y() < topPerpendicularOffCourseY &&
-                        userLocation.y() > bottomPerpendicularOffCourseY) {
+                else if(userLocation.getY() < topPerpendicularOffCourseY &&
+                        userLocation.getY() > bottomPerpendicularOffCourseY) {
                     // User is in the warning zone
                     // Checks that the user's y value is between all four off course boundary lines
                     userState = UserState.IN_WARNING_ZONE;
@@ -382,27 +382,27 @@ public class UserTracker {
                 userState = UserState.OFF_COURSE;
             }
         }
-        else if(realPrevNodeLoc.y() > realNextNodeLoc.y()) {
-            double bottomPerpendicularWarningY = (1/slope)*(userLocation.x() - realNextNodeLoc.x()) + realNextNodeLoc.y();
+        else if(realPrevNodeLoc.getY() > realNextNodeLoc.getY()) {
+            double bottomPerpendicularWarningY = (1/slope)*(userLocation.getX() - realNextNodeLoc.getX()) + realNextNodeLoc.getY();
             double bottomPerpendicularOffCourseY = bottomPerpendicularWarningY - c;
-            double topPerpendicularWarningY = (1/slope)*(userLocation.x() - realPrevNodeLoc.x()) + realPrevNodeLoc.y();
+            double topPerpendicularWarningY = (1/slope)*(userLocation.getX() - realPrevNodeLoc.getX()) + realPrevNodeLoc.getY();
             double topPerpendicularOffCourseY = topPerpendicularWarningY + c;
             
-            if(userLocation.y() < topParallelWarningY &&
-                    userLocation.y() > bottomParallelWarningY &&
-                    userLocation.y() < topPerpendicularWarningY &&
-                    userLocation.y() > bottomPerpendicularWarningY) {
+            if(userLocation.getY() < topParallelWarningY &&
+                    userLocation.getY() > bottomParallelWarningY &&
+                    userLocation.getY() < topPerpendicularWarningY &&
+                    userLocation.getY() > bottomPerpendicularWarningY) {
                 // User is on course
                 userState = UserState.ON_COURSE;
             }
-            else if(userLocation.y() < topParallelOffCourseY &&
-                    userLocation.y() > bottomParallelOffCourseY) {
-                if(userLocation.y() < bottomPerpendicularWarningY) {
+            else if(userLocation.getY() < topParallelOffCourseY &&
+                    userLocation.getY() > bottomParallelOffCourseY) {
+                if(userLocation.getY() < bottomPerpendicularWarningY) {
                     // User has passed the nextNode, so update their progress
                     updatePathProgress(nextNode, path.get(path.indexOf(nextNode) + 1));
                 }
-                else if(userLocation.y() < topPerpendicularOffCourseY &&
-                        userLocation.y() > bottomPerpendicularOffCourseY) {
+                else if(userLocation.getY() < topPerpendicularOffCourseY &&
+                        userLocation.getY() > bottomPerpendicularOffCourseY) {
                     // User is in the warning zone
                     // Checks that the user's y value is between all four off course boundary lines
                     userState = UserState.IN_WARNING_ZONE;
@@ -422,11 +422,11 @@ public class UserTracker {
     }
     
     private double slope(RectCoordinates pointA, RectCoordinates pointB) {
-        double xDiff = pointB.x() - pointA.x();
+        double xDiff = pointB.getX() - pointA.getX();
         if(xDiff == 0) {
             return Double.POSITIVE_INFINITY;
         }
-        return (pointB.y() - pointA.y())/(xDiff);
+        return (pointB.getY() - pointA.getY())/(xDiff);
     }
    
     /**
@@ -447,9 +447,9 @@ public class UserTracker {
     }
     
     private double distance(RectCoordinates locA, RectCoordinates locB) {
-        double xDiff = locB.x() - locA.x();
-        double yDiff = locB.y() - locA.y();
-        double zDiff = locB.z() - locA.z();
+        double xDiff = locB.getX() - locA.getX();
+        double yDiff = locB.getY() - locA.getY();
+        double zDiff = locB.getZ() - locA.getZ();
         
         return Math.sqrt(Math.pow(xDiff, 2) + Math.pow(yDiff, 2) + Math.pow(zDiff, 2));
     }
