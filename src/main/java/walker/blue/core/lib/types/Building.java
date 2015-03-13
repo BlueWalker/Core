@@ -145,7 +145,7 @@ public class Building {
         for(List<List<GridNode>> floor : this.searchSpace) {
             for(List<GridNode> row : floor) {
                 for(GridNode node : row) {
-                    if(node.walkable()) {
+                    if(node.isTraversable()) {
                         ssBuilder.append("T ");
                     }
                     else {
@@ -194,7 +194,7 @@ public class Building {
             dmBuilder.append(tag + ":\n");
             List<GridNode> nodes = destinationMap.get(tag);
             for(GridNode node : nodes) {
-                dmBuilder.append(node.location().toString() + "\n");
+                dmBuilder.append(node.getLocation().toString() + "\n");
             }
         }
         return dmBuilder.toString();
