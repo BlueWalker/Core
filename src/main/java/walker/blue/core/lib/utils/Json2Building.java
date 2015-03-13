@@ -103,7 +103,7 @@ public class Json2Building {
                         }
                     }
                     else {
-                        if(node.walkable()) {
+                        if(node.isTraversable()) {
                             rowNode.add("O");
                         }
                         else {
@@ -123,12 +123,12 @@ public class Json2Building {
         // Iterate through each floor connector adding it to the array node
         for(FloorConnector connector : floorConnectors) {
             ObjectNode connectorNode =
-                    getObjectNode(nodeFactory.objectNode(), connector.location());
+                    getObjectNode(nodeFactory.objectNode(), connector.getLocation());
 
             ArrayNode connectionsNode = nodeFactory.arrayNode();
             // TODO: Will calling getConnections repeatedly get called every loop?
             for(FloorConnector connection : connector.getConnections()) {
-                connectionsNode.add(getObjectNode(nodeFactory.objectNode(), connection.location()));
+                connectionsNode.add(getObjectNode(nodeFactory.objectNode(), connection.getLocation()));
             }
             connectorNode.set(CONNECTIONS, connectionsNode);
             stairsElevators.add(connectorNode);
@@ -148,9 +148,9 @@ public class Json2Building {
                             .put("Major", beacon.getMajor())
                             .put("Minor", beacon.getMinor())
                             .put("RSSI", beacon.getRSSI())
-                            .put(X, beaconLocation.x())
-                            .put(Y, beaconLocation.y())
-                            .put(Z, beaconLocation.z())
+                            .put(X, beaconLocation.getX())
+                            .put(Y, beaconLocation.getY())
+                            .put(Z, beaconLocation.getZ())
             );
         }
         buildingNode.set(BEACONS, beaconsNode);
@@ -182,7 +182,7 @@ public class Json2Building {
         ArrayNode destinationsNode = nodeFactory.arrayNode();
         Set<GridNode> nodeSet = nodeToTagsMap.keySet();
         for(GridNode node : nodeSet) {
-            ObjectNode destinationNode = getObjectNode(nodeFactory.objectNode(), node.location());
+            ObjectNode destinationNode = getObjectNode(nodeFactory.objectNode(), node.getLocation());
             List<String> tagsList = nodeToTagsMap.get(node);
             ArrayNode tagsNode = nodeFactory.arrayNode();
             for(String tag : tagsList) {
@@ -411,14 +411,14 @@ public class Json2Building {
         for(int i = 0; i < stairsElevatorsNode.size(); i++) {
             RectCoordinates loc = parseRectCoordinates(stairsElevatorsNode.get(i));
             if(loc == null ||
-                    loc.z() >= searchSpace.size() ||
-                    loc.y() >= searchSpace.get(loc.z()).size() ||
-                    loc.x() >= searchSpace.get(loc.z()).get(loc.y()).size()) {
+                    loc.getZ() >= searchSpace.size() ||
+                    loc.getY() >= searchSpace.get(loc.getZ()).size() ||
+                    loc.getX() >= searchSpace.get(loc.getZ()).get(loc.getY()).size()) {
                 System.out.println("unable to parse coordinates from json at index " + i + " of " + fieldName + ".");
                 return null;
             }
             
-            GridNode gridNode = searchSpace.get(loc.z()).get(loc.y()).get(loc.x());
+            GridNode gridNode = searchSpace.get(loc.getZ()).get(loc.getY()).get(loc.getX());
             // Check to make sure the grid node is also a floor connector. If it isn't, then
             // there is an error in the format of the json file.
             if(gridNode instanceof FloorConnector) {
@@ -442,27 +442,27 @@ public class Json2Building {
                     
                     RectCoordinates conLoc = parseRectCoordinates(conNode);
                     if(conLoc == null ||
-                            conLoc.z() >= searchSpace.size() ||
-                            conLoc.y() >= searchSpace.get(conLoc.z()).size() ||
-                            conLoc.x() >= searchSpace.get(conLoc.z()).get(conLoc.y()).size()) {
+                            conLoc.getZ() >= searchSpace.size() ||
+                            conLoc.getY() >= searchSpace.get(conLoc.getZ()).size() ||
+                            conLoc.getX() >= searchSpace.get(conLoc.getZ()).get(conLoc.getY()).size()) {
                         System.out.println("unable to parse coordinates from json at index " +
                             i + ", connector " + j + " of " + fieldName + ".");
                         return null;
                     }
                     
-                    GridNode gridNodeConnection = searchSpace.get(conLoc.z()).get(conLoc.y()).get(conLoc.x());
+                    GridNode gridNodeConnection = searchSpace.get(conLoc.getZ()).get(conLoc.getY()).get(conLoc.getX());
                     // Check that the connection is a floor connector. If it isn't, then json was not written correctly.
                     if(gridNodeConnection instanceof FloorConnector) {
                         if(!floorConnector.addConnection((FloorConnector)gridNodeConnection)) {
                             System.out.println(
-                                    "unable to add connection (" + conLoc.x() + ", " + conLoc.y() + ", " + conLoc.z() +
-                                    ") to connector ("+ loc.x() + ", " + loc.y() + ", " + loc.z() + ")");
+                                    "unable to add connection (" + conLoc.getX() + ", " + conLoc.getY() + ", " + conLoc.getZ() +
+                                    ") to connector ("+ loc.getX() + ", " + loc.getY() + ", " + loc.getZ() + ")");
                         }
                     }
                     else {
                         System.out.println(
-                                "unable to parse connection (" + conLoc.x() + ", " + conLoc.y() + ", " + conLoc.z() +
-                                ") to connector ("+ loc.x() + ", " + loc.y() + ", " + loc.z() + "). The search space node is not a FloorConnector.");
+                                "unable to parse connection (" + conLoc.getX() + ", " + conLoc.getY() + ", " + conLoc.getZ() +
+                                ") to connector ("+ loc.getX() + ", " + loc.getY() + ", " + loc.getZ() + "). The search space node is not a FloorConnector.");
                     }
                 }
                 
@@ -472,7 +472,7 @@ public class Json2Building {
             else {
                 System.out.println(
                         "unable to parse because search space node (" +
-                                loc.x() + ", " + loc.y() + ", " + loc.z() + ") is not a FloorConnector");
+                                loc.getX() + ", " + loc.getY() + ", " + loc.getZ() + ") is not a FloorConnector");
                 return null;
             }
         }
@@ -497,9 +497,9 @@ public class Json2Building {
         for(int i = 0; i < destinationsNode.size(); i++) {
             RectCoordinates location = parseRectCoordinates(destinationsNode.get(i));
             if(location == null ||
-                    location.z() >= searchSpace.size() ||
-                    location.y() >= searchSpace.get(location.z()).size() ||
-                    location.x() >= searchSpace.get(location.z()).get(location.y()).size()) {
+                    location.getZ() >= searchSpace.size() ||
+                    location.getY() >= searchSpace.get(location.getZ()).size() ||
+                    location.getX() >= searchSpace.get(location.getZ()).get(location.getY()).size()) {
                 System.out.println("unable to parse coordinates from json at index " + i + " of " + fieldName + ".");
                 return null;
             }
@@ -525,11 +525,11 @@ public class Json2Building {
                     // array list containing the grid node specified by the 
                     // parsed x, y, and z coordinates.
                     List<GridNode> list = new ArrayList<>();
-                    list.add(searchSpace.get(location.z()).get(location.y()).get(location.x()));
+                    list.add(searchSpace.get(location.getZ()).get(location.getY()).get(location.getX()));
                     destinationsMap.put(tag, list);
                 }
                 else {
-                    mappedNodes.add(searchSpace.get(location.z()).get(location.y()).get(location.x()));
+                    mappedNodes.add(searchSpace.get(location.getZ()).get(location.getY()).get(location.getX()));
                 }
             }
         }
@@ -627,7 +627,7 @@ public class Json2Building {
             for(FloorConnector connector : floorConnectors) {
                 for(FloorConnector otherConnector : floorConnectors) {
                     if(connector != otherConnector &&
-                            connector.location().z() == otherConnector.location().z()) {
+                            connector.getLocation().getZ() == otherConnector.getLocation().getZ()) {
                         connector.addConnection(otherConnector);
                     }
                 }
@@ -641,7 +641,7 @@ public class Json2Building {
                                                         int connectionFloor) {
 
         for(FloorConnector connector : floorConnectors) {
-            if(connector.location().z() == currentFloor) {
+            if(connector.getLocation().getZ() == currentFloor) {
                 // Used to store all of the connections that needed to be added to
                 // connector's connections, so that they can be added after all iterating to
                 // prevent ConcurrentModificationExceptions
@@ -649,7 +649,7 @@ public class Json2Building {
 
                 List<FloorConnector> connections = connector.getConnections();
                 for(FloorConnector connection : connections) {
-                    if(connection.location().z() == connectionFloor) {
+                    if(connection.getLocation().getZ() == connectionFloor) {
                         List<FloorConnector> conConnections = connection.getConnections();
                         for(FloorConnector conConnection : conConnections) {
                             if(conConnection != connector) {
@@ -698,8 +698,8 @@ public class Json2Building {
     }
 
     private ObjectNode getObjectNode(ObjectNode objNode, RectCoordinates location) {
-        return objNode.put(X, location.x())
-                .put(Y, location.y())
-                .put(Z, location.z());
+        return objNode.put(X, location.getX())
+                .put(Y, location.getY())
+                .put(Z, location.getZ());
     }
 }
