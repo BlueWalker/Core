@@ -46,6 +46,12 @@ public class DynamoDBWrapper {
         return result;
     }
 
+    /**
+     * Inserts a JSON string into the appropriate DynamoDB database.
+     * The string is generated from the given building's information.
+     * @param building the Building object that must be inserted into
+     *                 the database.
+     */
     public void putBuilding(final Building building) {
         // Will validate that the string can be parsed prior to inserting and
         // if of a correct format, will use the uuid in the file for inserting
@@ -64,7 +70,15 @@ public class DynamoDBWrapper {
         }
     }
 
-    public Building getBuilding(String uuid) {
+    /**
+     * Retrieves a Building object from the appropriate DynamoDB database.
+     * The given string is used as a primary key to grab the building
+     * information that is stored with the given UUID.
+     * @param uuid the String that uniquely identifies the building within
+     *             the database.
+     * @return Building
+     */
+    public Building getBuilding(final String uuid) {
         DynamoDB dynamo = new DynamoDB(client);
 
         Table table = dynamo.getTable(DdbCommon.TABLE_NAME);
