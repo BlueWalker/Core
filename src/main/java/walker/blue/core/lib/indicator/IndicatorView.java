@@ -26,10 +26,8 @@ public class IndicatorView extends SurfaceView implements SurfaceHolder.Callback
      * Default padding for the line
      */
     private static final int DEFAULT_PADDING = 0;
-    /**
-     * Starting position of the point
-     */
-    private static final float STARTING_POSITION = 0;
+    private static final int ANGLE_RANGE = 90;
+    private static final int DELTA = 50;
 
     /**
      * Paint used to draw the line
@@ -84,7 +82,7 @@ public class IndicatorView extends SurfaceView implements SurfaceHolder.Callback
         super(context, attributeSet, defStyle);
         this.padding = DEFAULT_PADDING;
         this.windowDimensions = new Point();
-        theme = IndicatorTheme.LIGHT;
+        this.theme = IndicatorTheme.LIGHT;
         this.linePaint = PaintFactory.buildLinePaint(theme.getLineColor());
         this.pointPaint = PaintFactory.buildPointPaint(theme.getPointColor());
         this.getHolder().addCallback(this);
@@ -152,6 +150,24 @@ public class IndicatorView extends SurfaceView implements SurfaceHolder.Callback
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
         Log.d(this.getClass().getName(), "surfaceDestroyed");
+    }
+
+    public void drawIndicatorAtAngle(final double angle) {
+        Log.d(this.getClass().getName(), "Drawing at angle : " + angle);
+        final float pos;
+        if (angle >= 90) {
+            pos = this.getAdjustedMaxWidth();
+        } else if (angle <= -90) {
+            pos = this.getPadding();
+        } else {
+            final double percentage = angle / ANGLE_RANGE;
+            final float offset = Math.round((this.getAdjustedMaxWidth() - this.getPadding()) * percentage) / 2.0f;
+            pos = (this.windowDimensions.x / 2) + offset;
+        }
+
+        if (Math.abs(pos - this.currentPosition) > DELTA) {
+            this.drawIndicatorAtPosition(pos);
+        }
     }
 
     /**

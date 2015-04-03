@@ -46,15 +46,24 @@ public class AWSCredentialsLoader {
 
     /**
      * Loads the credentials for AWS from the device
-     * Cant use try with resources in order to support Api 18 :(
      *
      * @return AWSCredentials
      */
     public static AWSCredentials loadCredentials() {
+        return loadCredentials(CREDENTIALS_LOCATION);
+    }
+
+    /**
+     * Loads the credentials for AWS from the device from the given path
+     *
+     * @param path path to the credentials file
+     * @return AWSCredentials
+     */
+    public static AWSCredentials loadCredentials(final String path) {
         FileReader credentialsReader = null;
         BufferedReader credentialsFile = null;
         try {
-            credentialsReader = new FileReader(CREDENTIALS_LOCATION);
+            credentialsReader = new FileReader(path);
             credentialsFile = new BufferedReader(credentialsReader);
             final Map<String, String> credentials = new HashMap<>();
             String buffer;

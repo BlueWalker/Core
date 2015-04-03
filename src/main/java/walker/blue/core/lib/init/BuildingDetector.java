@@ -13,7 +13,6 @@ import java.util.concurrent.Semaphore;
 
 import walker.blue.beacon.lib.beacon.Beacon;
 import walker.blue.core.lib.beacon.SyncBeaconScanClient;
-import walker.blue.core.lib.factories.BeaconClientFactory;
 
 /**
  * Class in charge of detecting the Building ID for the building in which
@@ -106,6 +105,7 @@ public class BuildingDetector implements Callable<BuildingDetector.Output> {
             if (result == null || entry.getValue() > currentMax) {
                 result = entry.getKey();
                 currentMax = entry.getValue();
+
             }
         }
         return result;

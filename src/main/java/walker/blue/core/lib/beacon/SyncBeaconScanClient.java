@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.util.Log;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -92,7 +93,7 @@ public class SyncBeaconScanClient {
     private ScanEndUserCallback unlockCallback = new ScanEndUserCallback() {
         @Override
         public void execute() {
-            if (bdLock.hasQueuedThreads()) {
+            if (bdLock != null && bdLock.hasQueuedThreads()) {
                 Log.d(this.getClass().getName(), LOG_BD_LATE_RELEASE);
                 bdLock.release();
             }
@@ -124,7 +125,16 @@ public class SyncBeaconScanClient {
     };
 
     /**
-     * Constructor. Creates the lock
+     * Constructor. Creates the locking client using the given context
+     *
+     * @param context Constext under which the client is being used
+     */
+    public SyncBeaconScanClient(final Context context) {
+        this(context, new HashSet<Beacon>());
+    }
+
+    /**
+     * Constructor. Creates the locking client using the given context and beacons
      *
      * @param context Constext under which the client is being used
      * @param beacons The collection where the beacons will be placed
