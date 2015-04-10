@@ -6,7 +6,9 @@ import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.util.Log;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -60,7 +62,7 @@ public class SyncBeaconScanClient {
     /**
      * Collection where the beacons are stored
      */
-    private Set<Beacon> beacons;
+    private List<Beacon> beacons;
     /**
      * Executor service used to launch the scan
      */
@@ -77,8 +79,11 @@ public class SyncBeaconScanClient {
         @Override
         public void onLeScan(final BluetoothDevice device, final int rssi, final byte[] scanRecord) {
             final Beacon beacon = BluetoothDeviceToBeacon.toBeacon(device, rssi, scanRecord);
-            if (beacon != null) {
+            int index = -1;
+            if (beacon != null && (index = beacons.indexOf(beacon)) == -1) {
                 beacons.add(beacon);
+            } else if (beacon != null) {
+                beacons.get(index).addMeasuredRSSI(beacon.getMeasuredRSSIValues().get(0));
             }
             if (bdLock != null && beacons.size() >= minNumOfBeacons && bdLock.hasQueuedThreads()) {
                 Log.d(this.getClass().getName(), LOG_BD_RELEASE);
@@ -105,10 +110,13 @@ public class SyncBeaconScanClient {
     /**
      * Callable thats starts the scan and locks the thread
      */
-    private Callable<Set<Beacon>> startScanCallable = new Callable<Set<Beacon>>() {
+    private Callable<List<Beacon>> startScanCallable = new Callable<List<Beacon>>() {
         @Override
-        public Set<Beacon> call() {
+        public List<Beacon> call() {
             Log.d(this.getClass().getName(),  String.format(LOG_SCAN_START, Thread.currentThread().getId()));
+            if (!beacons.isEmpty()) {
+                beacons.clear();
+            }
             beaconScanClient.startScanning();
             try {
                 Log.d(this.getClass().getName(), String.format(LOG_LOCKING_THREAD, Thread.currentThread().getId()));
@@ -120,7 +128,7 @@ public class SyncBeaconScanClient {
             } finally {
                 lock.release();
             }
-            return beacons;
+            return new ArrayList<>(beacons);
         }
     };
 
@@ -130,7 +138,7 @@ public class SyncBeaconScanClient {
      * @param context Constext under which the client is being used
      */
     public SyncBeaconScanClient(final Context context) {
-        this(context, new HashSet<Beacon>());
+        this(context, new ArrayList<Beacon>());
     }
 
     /**
@@ -139,7 +147,7 @@ public class SyncBeaconScanClient {
      * @param context Constext under which the client is being used
      * @param beacons The collection where the beacons will be placed
      */
-    public SyncBeaconScanClient(final Context context, final Set<Beacon> beacons) {
+    public SyncBeaconScanClient(final Context context, final List<Beacon> beacons) {
         this(context, beacons, DEFAULT_SCAN_TIME, 0, null);
     }
 
@@ -152,7 +160,7 @@ public class SyncBeaconScanClient {
      * @param scanTime Time in ms that the client will scan
      */
     public SyncBeaconScanClient(final Context context,
-                                final Set<Beacon> beacons,
+                                final List<Beacon> beacons,
                                 final int scanTime,
                                 final int minNumOfBeacons,
                                 final Semaphore bdLock) {
@@ -169,12 +177,16 @@ public class SyncBeaconScanClient {
                 .build();
     }
 
+    public void setScanTime(final int scanTime) {
+        this.beaconScanClient.setScanningInterval(scanTime);
+    }
+
     /**
      * Startes the beacons scan
      *
      * @return Future allowing the set of beacons to be consumed
      */
-    public Future<Set<Beacon>> startScan() {
+    public Future<List<Beacon>> startScan() {
         try {
             Log.d(this.getClass().getName(), LOG_INITIAL_LOCKING_THREAD);
             lock.acquire();

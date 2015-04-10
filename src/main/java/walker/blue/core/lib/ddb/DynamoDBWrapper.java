@@ -40,10 +40,10 @@ public class DynamoDBWrapper {
      */
     public GetItemResult getBuildingData(final String buildingID) {
         final Map<String, AttributeValue> attributes = new AttributeMapBuilder()
-                .addAttribute(DdbCommon.BUILDING_ID, buildingID)
+                .addAttribute(DDBConstants.BUILDING_ID, buildingID)
                 .build();
         try {
-            return this.client.getItem(DdbCommon.TABLE_NAME, attributes);
+            return this.client.getItem(DDBConstants.TABLE_NAME, attributes);
         } catch (final AmazonClientException e) {
             Log.d(this.getClass().getName(), "Failed getting data from DDB", e);
             return null;

@@ -3,8 +3,10 @@ package walker.blue.core.lib.init;
 import android.content.Context;
 import android.util.Log;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -29,7 +31,7 @@ public class BuildingDetector implements Callable<BuildingDetector.Output> {
     /**
      * Max time (in milliseconds) which the client will scan for Beacons
      */
-    private static final int SCAN_TIME = 5000;
+    private static final int SCAN_TIME = 2500;
     /**
      * Number of permits allowed in the semaphore
      */
@@ -46,7 +48,7 @@ public class BuildingDetector implements Callable<BuildingDetector.Output> {
     /**
      * Set in which the beacons scanned will be stored
      */
-    private Set<Beacon> beacons;
+    private List<Beacon> beacons;
     /**
      * Semaphore used to lock the thread until the minimum number of beacons
      * are found
@@ -59,7 +61,7 @@ public class BuildingDetector implements Callable<BuildingDetector.Output> {
      * @param context Context used throughout the class
      */
     public BuildingDetector(final Context context) {
-        this.beacons = new HashSet<>();
+        this.beacons = new ArrayList<>();
         this.bdLock = new Semaphore(NUMBER_OF_PERMITS);
         this.beaconScanClient = new SyncBeaconScanClient(context, this.beacons, SCAN_TIME, MIN_BEACONS, bdLock);
     }
@@ -69,7 +71,7 @@ public class BuildingDetector implements Callable<BuildingDetector.Output> {
         if (!beacons.isEmpty()) {
             beacons.clear();
         }
-        final Future<Set<Beacon>> futureBeacons = this.beaconScanClient.startScan();
+        final Future<List<Beacon>> futureBeacons = this.beaconScanClient.startScan();
         try {
             Log.d(this.getClass().getName(), String.format(LOG_LOCKING_THREAD, Thread.currentThread().getId()));
             bdLock.acquire();
@@ -89,7 +91,7 @@ public class BuildingDetector implements Callable<BuildingDetector.Output> {
      * @param beacons Set of Beacons
      * @return String
      */
-    private String getGreatestOccurance(final Set<Beacon> beacons) {
+    private String getGreatestOccurance(final Collection<Beacon> beacons) {
         final Map<String, Integer> idOccurances = new HashMap<>();
         for(final Beacon beacon : beacons) {
             if (idOccurances.containsKey(beacon.getUUID())) {
@@ -119,7 +121,7 @@ public class BuildingDetector implements Callable<BuildingDetector.Output> {
         /**
          * Future of the beacons being scanned by the client
          */
-        private Future<Set<Beacon>> futureBeacons;
+        private Future<List<Beacon>> futureBeacons;
         /**
          * Id of the building the user is currently in
          */
@@ -131,7 +133,7 @@ public class BuildingDetector implements Callable<BuildingDetector.Output> {
          * @param futureBeacons Future of the beacons being scanned by the client
          * @param buildingID Id of the building the user is currently in
          */
-        private Output(final Future<Set<Beacon>> futureBeacons, final String buildingID) {
+        private Output(final Future<List<Beacon>> futureBeacons, final String buildingID) {
             this.futureBeacons = futureBeacons;
             this.buildingID = buildingID;
         }
@@ -141,7 +143,7 @@ public class BuildingDetector implements Callable<BuildingDetector.Output> {
          *
          * @return Future of the beacons being scanned by the client
          */
-        public Future<Set<Beacon>> getFuture() {
+        public Future<List<Beacon>> getFuture() {
             return this.futureBeacons;
         }
 

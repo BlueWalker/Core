@@ -83,11 +83,9 @@ public class AttrToJava {
     public static Beacon attrToBeacon(final AttributeValue rawBeacon) {
         final Map<String, AttributeValue> attributeValueMap = rawBeacon.getM();
         return new BeaconBuilder()
-                .setBeaconAddress(attributeValueMap.get(DDBConstants.BEACON_ADDRESS).getS())
                 .setBeaconMajor(Integer.valueOf(attributeValueMap.get(DDBConstants.BEACON_MAJOR).getN()))
                 .setBeaconMinor(Integer.valueOf(attributeValueMap.get(DDBConstants.BEACON_MINOR).getN()))
-                .setBeaconName(attributeValueMap.get(DDBConstants.BEACON_NAME).getS())
-                .setBeaconRSSI(Integer.valueOf(attributeValueMap.get(DDBConstants.BEACON_RSSI).getN()))
+                .setBeaconUUID(attributeValueMap.get(DDBConstants.BEACON_UUID).getS())
                 .build();
     }
 

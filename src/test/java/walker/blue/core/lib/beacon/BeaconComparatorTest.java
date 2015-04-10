@@ -7,6 +7,9 @@ import org.junit.Test;
 import walker.blue.beacon.lib.beacon.Beacon;
 import walker.blue.beacon.lib.beacon.BeaconBuilder;
 
+/**
+ * Unit tests for the BeaconComparator class
+ */
 public class BeaconComparatorTest {
 
     private static final BeaconComparator comparator = new BeaconComparator();

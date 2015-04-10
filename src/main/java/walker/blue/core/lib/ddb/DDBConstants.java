@@ -11,6 +11,9 @@ public class DDBConstants {
     public static final String X = "x";
     public static final String Y = "y";
     public static final String Z = "z";
+    /* ---- TABLE CONSTANTS ---- */
+    public static final String BUILDING_ID = "BuildingID";
+    public static final String TABLE_NAME = "BlueWalker";
     /* ---- BUILDING DATA CONSTANTS ---- */
     public static final String BUILDING_DATA = "BuildingData";
     /* ---- BEACON CONSTANTS ---- */
@@ -18,6 +21,7 @@ public class DDBConstants {
     public static final String BEACON_ADDRESS = "Address";
     public static final String BEACON_MAJOR = "Major";
     public static final String BEACON_MINOR = "Minor";
+    public static final String BEACON_UUID = "UUID";
     public static final String BEACON_NAME = "Name";
     public static final String BEACON_RSSI = "RSSI";
     /* ---- DESTINATION CONSTANTS ---- */
