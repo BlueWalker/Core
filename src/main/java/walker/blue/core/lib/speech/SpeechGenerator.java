@@ -11,6 +11,11 @@ import walker.blue.path.lib.RectCoordinates;
 public class SpeechGenerator {
 
     /**
+     * delta value used to compare doubles
+     */
+    private static final double DELTA = 1.5f;
+
+    /**
      * Current path for the user
      */
     private List<GridNode> path;
@@ -73,8 +78,10 @@ public class SpeechGenerator {
         final int crossProduct = this.getNodeCrossProduct(userLocation, nextWaypoint, nextNextNode);
         if (crossProduct < 0) {
             return NodeDirection.RIGHT;
-        } else {
+        } else if (crossProduct > 0) {
             return NodeDirection.LEFT;
+        } else {
+            return  NodeDirection.BEHIND;
         }
     }
 
@@ -132,7 +139,8 @@ public class SpeechGenerator {
         } else {
             // Not on the last node yet
             final GridNode nextNextNode = this.path.get(nextNodeIndex + 1);
-            if (!nextNextNode.isTraversable()) {
+            if (!nextNextNode.isTraversable() &&
+                    Math.abs(this.getDistance(nextNextNode, nextNode) - DELTA) <= 0) {
                 return NodeEvent.REACHING_DESTINATION;
             } else {
                 return NodeEvent.TURN;
