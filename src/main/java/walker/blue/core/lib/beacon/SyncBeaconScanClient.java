@@ -7,9 +7,7 @@ import android.content.Context;
 import android.util.Log;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -177,6 +175,11 @@ public class SyncBeaconScanClient {
                 .build();
     }
 
+    /**
+     * Set the amount of time for which the client will scan
+     *
+     * @param scanTime new scan time for the client
+     */
     public void setScanTime(final int scanTime) {
         this.beaconScanClient.setScanningInterval(scanTime);
     }

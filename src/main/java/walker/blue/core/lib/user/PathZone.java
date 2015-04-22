@@ -3,7 +3,7 @@ package walker.blue.core.lib.user;
 import java.util.HashSet;
 import java.util.Set;
 
-import walker.blue.path.lib.RectCoordinates;
+import walker.blue.path.lib.node.RectCoordinates;
 
 /**
  * Class that represents a zone around two points in the path
@@ -57,18 +57,6 @@ public class PathZone {
                 this.makeVertex(endNode, nodeLine, horizontalZoneOffset, perpNodeLine, verticalZoneOffset, 1, 1);
         final Vertex d =
                 this.makeVertex(endNode, nodeLine, horizontalZoneOffset, perpNodeLine, verticalZoneOffset, 1,-1);
-
-        /*
-        System.out.println("nl: x: " + nodeLine.x + " y: " + nodeLine.y);
-        System.out.println("pnl: x: " + perpNodeLine.x + " y: " + perpNodeLine.y);
-        System.out.println("x: " + a.x + " y: " + a.y);
-        System.out.println("x: " + b.x + " y: " + b.y);
-        System.out.println("x: " + c.x + " y: " + c.y);
-        System.out.println("x: " + d.x + " y: " + d.y);
-
-        System.out.println("["+a.x+","+b.x+","+d.x+","+c.x+","+a.x+"],");
-        System.out.println("["+a.y+","+b.y+","+d.y+","+c.y+","+a.y+"],");
-        */
 
         this.pairSet = new HashSet<>();
         this.pairSet.add(new VertexPair(a, b));

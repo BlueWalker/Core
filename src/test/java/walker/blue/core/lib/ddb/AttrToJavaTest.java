@@ -12,12 +12,13 @@ import walker.blue.core.lib.types.Building;
 
 /**
  * Unit test for AttrToJava class
+ * TODO: Actually check if the data is correct
  */
 public class AttrToJavaTest {
 
     private static final String CREDENTIALS_PATH = "../../../awscredentials";
     private static final String NOT_RUN = "Test was not run since the credentials file was not found";
-    private static final String BUILDING_ID = "TEST_NEW_MAP";
+    private static final String BUILDING_ID = "0112233445566778899aabbccddeeff0";
 
     @Test
     public void testAttrToBuilding() {

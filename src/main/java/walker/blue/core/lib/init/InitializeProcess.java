@@ -5,8 +5,8 @@ import android.util.Log;
 
 import com.amazonaws.services.dynamodbv2.model.GetItemResult;
 
-import org.apache.commons.math3.distribution.LogisticDistribution;
-
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -18,13 +18,15 @@ import walker.blue.core.lib.common.ProcessCommon;
 import walker.blue.core.lib.ddb.AttrToJava;
 import walker.blue.core.lib.ddb.DynamoDBWrapper;
 import walker.blue.core.lib.input.UserInputParser;
+import walker.blue.core.lib.speech.GeneratedSpeech;
+import walker.blue.core.lib.speech.SpeechGenerator;
 import walker.blue.core.lib.types.Building;
 import walker.blue.core.lib.types.DestinationTable;
 import walker.blue.core.lib.types.DestinationType;
-import walker.blue.path.lib.FloorSequencer;
-import walker.blue.path.lib.GridNode;
-import walker.blue.path.lib.RectCoordinates;
-import walker.blue.path.lib.ThetaStar;
+import walker.blue.path.lib.floor.FloorSequencer;
+import walker.blue.path.lib.node.GridNode;
+import walker.blue.path.lib.node.RectCoordinates;
+import walker.blue.path.lib.finder.ThetaStar;
 import walker.blue.tri.lib.Trilateration;
 
 /**
@@ -35,20 +37,20 @@ public class InitializeProcess extends ProcessCommon implements Callable<Initial
     /**
      * Log messages
      */
-    private static final String LOG_FAILED_BD = "Consuming BuildingDetector Future failed - %s";
-    private static final String LOG_FAILED_BEACONS= "Consuming beacons Future failed - %s";
-    private static final String LOG_RECIEVED_BUILDING_ID = "Received buidling ID - %s";
-    private static final String LOG_BEACONS_FUTURE = "Consuming Beacons Future";
-    private static final String LOG_BEACONS_DONE = "Finished consuming Beacons Future. %s beacons found";
+    protected static final String LOG_FAILED_BD = "Consuming BuildingDetector Future failed - %s";
+    protected static final String LOG_FAILED_BEACONS= "Consuming beacons Future failed - %s";
+    protected static final String LOG_RECIEVED_BUILDING_ID = "Received buidling ID - %s";
+    protected static final String LOG_BEACONS_FUTURE = "Consuming Beacons Future";
+    protected static final String LOG_BEACONS_DONE = "Finished consuming Beacons Future. %s beacons found";
 
     /**
      * Context under which the initialize process is being run
      */
-    private Context context;
+    protected Context context;
     /**
      * The user input
      */
-    private List<String> userInput;
+    protected List<String> userInput;
 
     /**
      * Constructor. Sets the context and userInput fields to the given objects
@@ -65,18 +67,16 @@ public class InitializeProcess extends ProcessCommon implements Callable<Initial
     public Output call() {
         final BuildingDetector.Output bdOutput = this.getCurrentBuilding();
         if (bdOutput == null) {
-            Log.d(this.getClass().getName(), "BuildingDetector Failed");
             return new Output(InitError.BD_FAIL);
         }
         final Building building = this.getBuildingData(bdOutput.getBuildingID());
+//        final Building building = this.getBuildingData("0112233445566778899aabbccddeeff0");
         if (building == null) {
-            Log.d(this.getClass().getName(), "Failed getting building data");
             return new Output(InitError.NULL_BUILDING);
         }
         final UserInputParser inputParser = new UserInputParser(this.userInput);
         final DestinationType destinationType = this.getDestinationType(inputParser);
         if (destinationType == null) {
-            Log.d(this.getClass().getName(), "Failed Getting destination type");
             return new Output(InitError.NULL_DEST_TYPE);
         }
         final DestinationTable destinationTable = building.getDestinationTable();
@@ -88,7 +88,6 @@ public class InitializeProcess extends ProcessCommon implements Callable<Initial
             destination = this.getNonGenericDestination(destinationType, inputParser, destinationTable);
         }
         if (destination == null && possibleDestinations == null) {
-            Log.d(this.getClass().getName(), "Invalid destination");
             return new Output(InitError.INVALID_INPUT);
         }
 
@@ -105,24 +104,23 @@ public class InitializeProcess extends ProcessCommon implements Callable<Initial
 
         final Trilateration trilateration = null;
         final GridNode currentNode = this.getUserLocationProximity(beaconSet, building);
+//        final GridNode currentNode = this.debugLocationGet(building);
         if (currentNode == null) {
-            Log.d(this.getClass().getName(), "Failed getting initial user location");
             return new Output(InitError.LOCATION_FAIL);
+        } else if (this.alreadyArrived(currentNode, destination)) {
+            return new Output(InitError.ALREADY_ARRIVED);
         }
-
         if (destinationType.isGeneric()) {
             destination = this.findClosestNodeNaive(possibleDestinations, currentNode);
         }
-
         // Generate the path for the user
         final ThetaStar thetaStar = new ThetaStar();
         final FloorSequencer floorSequencer = new FloorSequencer(thetaStar,
                 building.getSearchSpace(),
                 building.getFloorConnectors());
-        final List<GridNode> path = floorSequencer.findPath(currentNode, destination);
+        final List<GridNode> path = this.checkPath(floorSequencer.findPath(currentNode, destination), building);
         if (path == null) {
-            Log.d(this.getClass().getName(), "Failed getting path");
-            return null;
+            return new Output(InitError.PATH_FAIL);
         }
 
         // Pack everything into the output object and return it
@@ -140,7 +138,7 @@ public class InitializeProcess extends ProcessCommon implements Callable<Initial
      *
      * @return BuildingDetector.Output returned by the building detector
      */
-    private BuildingDetector.Output getCurrentBuilding() {
+    protected BuildingDetector.Output getCurrentBuilding() {
         final ExecutorService executorService = Executors.newSingleThreadExecutor();
         // Detect the building the user is in
         final BuildingDetector buildingDetector = new BuildingDetector(this.context);
@@ -165,13 +163,10 @@ public class InitializeProcess extends ProcessCommon implements Callable<Initial
      * @param buildingID String the id of a building
      * @return Building object correspoinding to the given buildign id
      */
-    private Building getBuildingData(final String buildingID) {
+    protected Building getBuildingData(final String buildingID) {
         final DynamoDBWrapper ddb = new DynamoDBWrapper();
         final GetItemResult rawBuildingData = ddb.getBuildingData(buildingID);
         final Building building = AttrToJava.getItemResultToBuilding(rawBuildingData);
-        if (building != null) {
-            Log.d(this.getClass().getName(), "Got building data");
-        }
         return building;
     }
 
@@ -181,15 +176,13 @@ public class InitializeProcess extends ProcessCommon implements Callable<Initial
      * @param inputParser the UserInputParser containing the input of the user
      * @return Destination type specified by the user
      */
-    private DestinationType getDestinationType(final UserInputParser inputParser) {
+    protected DestinationType getDestinationType(final UserInputParser inputParser) {
         final Set<String> keywords = inputParser.getKeywords();
         if (keywords.size() != 1) {
-            Log.d(this.getClass().getName(), "keywords.size() != 1");
             return null;
         }
         DestinationType destinationType = null;
         for (final String keyword : keywords) {
-            Log.d(this.getClass().getName(), "keyword" + keyword);
             destinationType = DestinationType.valueOf(keyword.toUpperCase());
         }
         return destinationType;
@@ -205,9 +198,9 @@ public class InitializeProcess extends ProcessCommon implements Callable<Initial
      * @param destinationTable DestinationTable for the building
      * @return Destination specified by the user
      */
-    private GridNode getNonGenericDestination(final DestinationType destinationType,
-                                              final UserInputParser inputParser,
-                                              final DestinationTable destinationTable) {
+    protected GridNode getNonGenericDestination(final DestinationType destinationType,
+                                                final UserInputParser inputParser,
+                                                final DestinationTable destinationTable) {
         final Set<String> keys = inputParser.getFilteredNumbers(destinationTable, destinationType);
         if (keys.size() != 1) {
             return null;
@@ -227,7 +220,7 @@ public class InitializeProcess extends ProcessCommon implements Callable<Initial
      * @param start Starting node
      * @return Node closes to the given starting node
      */
-    private GridNode findClosestNodeNaive(final Set<GridNode> nodes, final GridNode start) {
+    protected GridNode findClosestNodeNaive(final Set<GridNode> nodes, final GridNode start) {
         double minDistance = Double.MAX_VALUE;
         GridNode closestNode = null;
         for (final GridNode node : nodes) {
@@ -251,9 +244,9 @@ public class InitializeProcess extends ProcessCommon implements Callable<Initial
      *                   nodes
      * @return Shotest path for all given ndoes
      */
-    private List<GridNode> findClosestNode(final Set<GridNode> nodes,
-                                           final GridNode start,
-                                           final FloorSequencer pathfinder) {
+    protected List<GridNode> findClosestNode(final Set<GridNode> nodes,
+                                             final GridNode start,
+                                             final FloorSequencer pathfinder) {
         double minDistance = Double.MAX_VALUE;
         List<GridNode> shortestPath = null;
         for (final GridNode node : nodes) {
@@ -273,7 +266,7 @@ public class InitializeProcess extends ProcessCommon implements Callable<Initial
      * @param path Path whose distance is being calculated
      * @return Total distance of the path
      */
-    private double pathDistance(final List<GridNode> path) {
+    protected double pathDistance(final List<GridNode> path) {
         double distance = 0.0f;
         for (int i = 1; i < path.size(); i++) {
             distance += this.distanceBetweenNodes(path.get(i - 1), path.get(i));
@@ -289,7 +282,7 @@ public class InitializeProcess extends ProcessCommon implements Callable<Initial
      * @param nodeB Node
      * @return Distance between the two given nodes
      */
-    private double distanceBetweenNodes(final GridNode nodeA, final GridNode nodeB) {
+    protected double distanceBetweenNodes(final GridNode nodeA, final GridNode nodeB) {
         final RectCoordinates locA = nodeA.getLocation();
         final RectCoordinates locB = nodeB.getLocation();
         return Math.sqrt(Math.pow(locA.getX() - locB.getX(), 2) +
@@ -318,12 +311,12 @@ public class InitializeProcess extends ProcessCommon implements Callable<Initial
                     error);
         }
 
-        private Output(final FloorSequencer pathfinder,
-                       final Trilateration trilateration,
-                       final List<GridNode> path,
-                       final Building building,
-                       final GridNode currentLocation,
-                       final InitError error) {
+        public Output(final FloorSequencer pathfinder,
+                      final Trilateration trilateration,
+                      final List<GridNode> path,
+                      final Building building,
+                      final GridNode currentLocation,
+                      final InitError error) {
             this.pathfinder = pathfinder;
             this.trilateration = trilateration;
             this.path = path;
@@ -351,5 +344,82 @@ public class InitializeProcess extends ProcessCommon implements Callable<Initial
         public InitError getError() {
             return this.error;
         }
+    }
+
+    /**
+     * Checks if the user is already at the destination
+     *
+     * @param userLocation current location of the user
+     * @param destination The destination
+     * @return boolean indicating whether the user is already at the destination
+     */
+    private boolean alreadyArrived(final GridNode userLocation, final GridNode destination) {
+        final double distance = this.distanceBetweenNodes(userLocation, destination);
+        final RectCoordinates userRect = userLocation.getLocation();
+        final RectCoordinates destRect = destination.getLocation();
+        return distance <= 3.0f &&
+                (userRect.getX() - destRect.getX() <= 2 || userRect.getY() - destRect.getY() <=2);
+    }
+
+    /**
+     * Checks the path for troublesome turns. Currently defaults to out solutions.
+     * This need to be improved
+     *
+     * @param path Path being checked
+     * @param build building
+     * @return fixed list
+     */
+    private List<GridNode> checkPath(final List<GridNode> path, final Building build) {
+        final SpeechGenerator speechGenerator = new SpeechGenerator(path);
+        final List<GridNode> res = new ArrayList<>();
+        final Iterator<GridNode> i = path.iterator();
+        GridNode a = i.next();
+        GeneratedSpeech lastSpeech = null;
+        while (i.hasNext()) {
+            GridNode b = i.next();
+            GeneratedSpeech generatedSpeech = i.hasNext() ? speechGenerator.getSpeechForNodes(a.getLocation(), b) : null;
+            final double dis = this.distanceBetweenNodes(a, b);
+            if (lastSpeech != null &&
+                    generatedSpeech !=null &&
+                    lastSpeech.getEvent() == generatedSpeech.getEvent() &&
+                    lastSpeech.getDirection() == generatedSpeech.getDirection() &&
+                    dis < 10.0f) {
+                final GridNode newNode = a.getLocation().getX() < 15 ?
+                        this.gridNode1(build) :
+                        this.gridNode24(build);
+                a = null;
+                b = newNode;
+            }
+            if (a != null) {
+                res.add(a);
+            }
+            a = b;
+            lastSpeech = generatedSpeech;
+        }
+        res.add(a);
+        return res;
+    }
+
+    private GridNode gridNode1(final Building b) {
+        return b.getSearchSpace()
+                .get(3)
+                .get(40)
+                .get(1);
+    }
+
+    private GridNode gridNode24(final Building b) {
+        return b.getSearchSpace()
+                .get(3)
+                .get(40)
+                .get(24);
+    }
+
+    /** ------------- DEBUG METHODS ------------- */
+    private GridNode debugLocationGet(final Building building) {
+        return building.getSearchSpace()
+                .get(3)
+                .get(40)
+                .get(9);
+
     }
 }

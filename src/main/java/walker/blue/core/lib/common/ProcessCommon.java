@@ -8,8 +8,8 @@ import java.util.List;
 import walker.blue.beacon.lib.beacon.Beacon;
 import walker.blue.core.lib.beacon.BeaconComparator;
 import walker.blue.core.lib.types.Building;
-import walker.blue.path.lib.GridNode;
-import walker.blue.path.lib.RectCoordinates;
+import walker.blue.path.lib.node.GridNode;
+import walker.blue.path.lib.node.RectCoordinates;
 
 /**
  * Base class for the MainLoop and and the Initialize process. IT defines how
@@ -27,7 +27,7 @@ public abstract class ProcessCommon {
     /**
      * Allowed delta value to place user between two beacons
      */
-    private static final double BEACON_POWER_DELTA = 5;
+    private static final double BEACON_POWER_DELTA = 7;
 
     /**
      * Comparator used to sort the list of beacons according to their average rssi values
@@ -48,7 +48,6 @@ public abstract class ProcessCommon {
         }
 
         if (beacons.size() > 2) {
-            Log.d(this.getClass().getName(), "tw0 beacons");
             Collections.sort(beacons, this.beaconComparator);
             final Beacon maxBeacon = beacons.get(beacons.size() - 1);
             final Beacon secondBeacon = beacons.get(beacons.size() - 2);
@@ -62,7 +61,7 @@ public abstract class ProcessCommon {
                 final int newY = (maxLocation.getY() + secondLocation.getY()) / 2;
                 final int newX = (maxLocation.getX() + secondLocation.getX()) / 2;
                 Log.d(this.getClass().getName(), String.format(LOG_NEW_VALS, newX, newY, newZ));
-                if (this.searchSpaceContains(building, newX, newY, newZ)) {
+                if (building.searchSpaceContains(newX, newY, newZ)) {
                     return building.getSearchSpace()
                             .get(newZ)
                             .get(newY)
@@ -73,7 +72,7 @@ public abstract class ProcessCommon {
             }
             return this.getBeaconLocation(building, maxBeacon);
         } else {
-            Log.d(this.getClass().getName(), "returning only");
+            this.logBeacon(LOG_MAX_BEACON, beacons.get(0));
             return this.getBeaconLocation(building, beacons.get(0));
         }
     }
@@ -90,21 +89,14 @@ public abstract class ProcessCommon {
             return null;
         }
         final RectCoordinates beaconLoc = building.getBeaconLocationMap().get(beacon);
-        if (this.searchSpaceContains(building, beaconLoc.getX(), beaconLoc.getY(), beaconLoc.getZ())) {
-            Log.d(this.getClass().getName(), "Contains");
+        if (building.searchSpaceContains(beaconLoc.getX(), beaconLoc.getY(), beaconLoc.getZ())) {
             return building.getSearchSpace()
                     .get(beaconLoc.getZ())
                     .get(beaconLoc.getY())
                     .get(beaconLoc.getX());
         } else {
-            Log.d(this.getClass().getName(), "null");
             return null;
         }
-    }
-
-    private boolean searchSpaceContains(final Building building, final int x, final int y, final int z) {
-        final List<List<List<GridNode>>> ss = building.getSearchSpace();
-        return ss.size() > z && ss.get(z).size() > y && ss.get(z).get(y).size() > x;
     }
 
     /**

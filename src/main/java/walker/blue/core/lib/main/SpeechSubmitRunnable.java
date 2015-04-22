@@ -2,6 +2,7 @@ package walker.blue.core.lib.main;
 
 import android.content.Context;
 import android.speech.tts.TextToSpeech;
+import android.util.Log;
 
 import java.util.List;
 
@@ -9,8 +10,8 @@ import walker.blue.core.lib.speech.GeneratedSpeech;
 import walker.blue.core.lib.speech.SpeechGenerator;
 import walker.blue.core.lib.types.Building;
 import walker.blue.core.lib.user.UserTracker;
-import walker.blue.path.lib.GridNode;
-import walker.blue.path.lib.RectCoordinates;
+import walker.blue.path.lib.node.GridNode;
+import walker.blue.path.lib.node.RectCoordinates;
 
 /**
  * Runnable in charge of submitting what will be said to the user throughout
@@ -60,21 +61,10 @@ public class SpeechSubmitRunnable implements Runnable {
     public void run() {
         final RectCoordinates userCoordinates = this.userTracker.getLatestLocation();
         if (userCoordinates != null) {
-            final GridNode userNode = this.building.getSearchSpace()
-                    .get(userCoordinates.getZ())
-                    .get(userCoordinates.getY() + 1)
-                    .get(userCoordinates.getX());
             final GeneratedSpeech speech =
-                    this.speechGenerator.getSpeechForNodes(userNode, this.userTracker.getNextNode());
-            final String speechstr = speech.toString();
+                    this.speechGenerator.getSpeechForNodes(userCoordinates, this.userTracker.getNextNode());
+            Log.d(this.getClass().getName(), "Submitting the following string: " + speech.toString());
             this.textToSpeech.speak(speech.toString(), TextToSpeech.QUEUE_FLUSH, null);
         }
-    }
-
-    /**
-     * Kills and cleans up the runnable
-     */
-    public void kill() {
-        this.textToSpeech.shutdown();
     }
 }

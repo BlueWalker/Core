@@ -8,7 +8,7 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-import walker.blue.path.lib.GridNode;
+import walker.blue.path.lib.node.GridNode;
 
 /**
  * Unit tests for the SpeechGenerator class
@@ -38,28 +38,31 @@ public class SpeechGeneratorTest {
 
     @Test
     public void testGetSpeechForNodes0and1() {
-        final GeneratedSpeech generatedSpeech = speechGenerator.getSpeechForNodes(path.get(0), path.get(1));
+        final GeneratedSpeech generatedSpeech =
+                speechGenerator.getSpeechForNodes(path.get(0).getLocation(), path.get(1));
         Assert.assertEquals(10.0f, generatedSpeech.getDistance(), .001);
-        Assert.assertEquals(NodeEvent.TURN, generatedSpeech.getEvent());
-        Assert.assertEquals(NodeDirection.RIGHT, generatedSpeech.getDirection());
-        System.out.println(generatedSpeech.toString());
-    }
-
-    @Test
-    public void testGetSpeechForNodes1and2() {
-        final GeneratedSpeech generatedSpeech = speechGenerator.getSpeechForNodes(path.get(1), path.get(2));
-        Assert.assertEquals(Math.sqrt(50), generatedSpeech.getDistance(), .001);
         Assert.assertEquals(NodeEvent.TURN, generatedSpeech.getEvent());
         Assert.assertEquals(NodeDirection.LEFT, generatedSpeech.getDirection());
         System.out.println(generatedSpeech.toString());
     }
 
     @Test
+    public void testGetSpeechForNodes1and2() {
+        final GeneratedSpeech generatedSpeech =
+                speechGenerator.getSpeechForNodes(path.get(1).getLocation(), path.get(2));
+        Assert.assertEquals(Math.sqrt(50), generatedSpeech.getDistance(), .001);
+        Assert.assertEquals(NodeEvent.TURN, generatedSpeech.getEvent());
+        Assert.assertEquals(NodeDirection.RIGHT, generatedSpeech.getDirection());
+        System.out.println(generatedSpeech.toString());
+    }
+
+    @Test
     public void testGetSpeechForNodes3and4() {
-        final GeneratedSpeech generatedSpeech = speechGenerator.getSpeechForNodes(path.get(3), path.get(4));
+        final GeneratedSpeech generatedSpeech =
+                speechGenerator.getSpeechForNodes(path.get(3).getLocation(), path.get(4));
         Assert.assertEquals(5.0f, generatedSpeech.getDistance(), .001);
         Assert.assertEquals(NodeEvent.REACHING_DESTINATION, generatedSpeech.getEvent());
-        Assert.assertEquals(NodeDirection.RIGHT, generatedSpeech.getDirection());
+        Assert.assertEquals(NodeDirection.LEFT, generatedSpeech.getDirection());
         System.out.println(generatedSpeech.toString());
     }
 }

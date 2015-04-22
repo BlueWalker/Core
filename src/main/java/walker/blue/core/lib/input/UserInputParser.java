@@ -8,7 +8,7 @@ import java.util.Set;
 
 import walker.blue.core.lib.types.DestinationTable;
 import walker.blue.core.lib.types.DestinationType;
-import walker.blue.path.lib.GridNode;
+import walker.blue.path.lib.node.GridNode;
 
 /**
  * Class in charge of parsing user input
@@ -64,6 +64,14 @@ public class UserInputParser {
         return this.getNumbers(null);
     }
 
+    /**
+     * Gets a filtered list of numbers. Only numbers which the given appear
+     * in the given table will appear
+     *
+     * @param table Destination table that will be used to filter the numbers
+     * @param type Type of destination being extracted
+     * @return set of the filtered numbers
+     */
     public Set<String> getFilteredNumbers(final DestinationTable table, final DestinationType type) {
         if (type.isGeneric()) {
             return null;
@@ -91,6 +99,12 @@ public class UserInputParser {
         return result;
     }
 
+    /**
+     * Gets all the numbers found in the input
+     *
+     * @param filter filter used to get rid of useless numbers
+     * @return set of numbers
+     */
     private Set<String> getNumbers(final Map<String, GridNode> filter) {
         final Set<String> result = new HashSet<>();
         for (final String str : this.rawInput) {

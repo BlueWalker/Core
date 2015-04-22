@@ -4,6 +4,9 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Types of destinations found in the destination table
+ */
 public enum DestinationType {
     ROOM(false),
     BATHROOM(true),
@@ -18,7 +21,7 @@ public enum DestinationType {
 
     private boolean generic;
 
-    private DestinationType(final boolean generic) {
+    DestinationType(final boolean generic) {
         this.generic = generic;
     }
 

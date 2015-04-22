@@ -6,7 +6,6 @@ import android.graphics.Color;
  * Themes for the indicator view
  */
 public enum IndicatorTheme {
-
     LIGHT(Color.WHITE, Color.RED),
     DARK(Color.BLACK, Color.RED),
     GRAYSCALE_LIGHT(Color.WHITE, Color.LTGRAY),

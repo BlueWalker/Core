@@ -5,11 +5,9 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Point;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.TypedValue;
-import android.view.Display;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
@@ -25,10 +23,16 @@ public class IndicatorView extends SurfaceView implements SurfaceHolder.Callback
     /**
      * Default padding for the line
      */
-    private static final int DEFAULT_PADDING = 0;
-    private static final int ANGLE_RANGE = 90;
-    private static final int DELTA = 50;
+    private static final int ANGLE_RANGE = 55;
 
+    /**
+     * Current height of the view
+     */
+    private int height;
+    /**
+     * Current width of the view
+     */
+    private int width;
     /**
      * Paint used to draw the line
      */
@@ -37,14 +41,6 @@ public class IndicatorView extends SurfaceView implements SurfaceHolder.Callback
      * Paint used to draw the point
      */
     private Paint pointPaint;
-    /**
-     * Current window dimensions
-     */
-    private Point windowDimensions;
-    /**
-     * Padding for the indicator
-     */
-    private int padding;
     /**
      * Current position of the point
      */
@@ -64,6 +60,7 @@ public class IndicatorView extends SurfaceView implements SurfaceHolder.Callback
     }
 
     /**
+     ** Constructor
      *
      * @param context
      * @param attributeSet
@@ -73,6 +70,7 @@ public class IndicatorView extends SurfaceView implements SurfaceHolder.Callback
     }
 
     /**
+     * Constructor
      *
      * @param context
      * @param attributeSet
@@ -80,21 +78,17 @@ public class IndicatorView extends SurfaceView implements SurfaceHolder.Callback
      */
     public IndicatorView(final Context context, final AttributeSet attributeSet, final int defStyle) {
         super(context, attributeSet, defStyle);
-        this.padding = DEFAULT_PADDING;
-        this.windowDimensions = new Point();
         this.theme = IndicatorTheme.LIGHT;
         this.linePaint = PaintFactory.buildLinePaint(theme.getLineColor());
         this.pointPaint = PaintFactory.buildPointPaint(theme.getPointColor());
         this.getHolder().addCallback(this);
     }
 
-    /**
-     * Set the padding for the line
-     *
-     * @param padding new value for the padding
-     */
-    public void setLinePadding(final int padding) {
-        this.padding = padding;
+    @Override
+    protected void onMeasure(final int widthMeasureSpec, final int heightMeasureSpec) {
+        this.height = MeasureSpec.getSize(heightMeasureSpec);
+        this.width = MeasureSpec.getSize(widthMeasureSpec);
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     }
 
     /**
@@ -117,57 +111,37 @@ public class IndicatorView extends SurfaceView implements SurfaceHolder.Callback
         return this.currentPosition;
     }
 
-    /**
-     * Get the max width allowed. Padding is taken into consideration
-     *
-     * @return maximum allowed width
-     */
-    public int getAdjustedMaxWidth() {
-        return this.windowDimensions.x - this.padding;
-    }
-
-    /**
-     * Get current padding of the indicator
-     *
-     * @return current value of padding being used
-     */
-    public int getPadding() {
-        return this.padding;
-    }
 
     @Override
-    public void surfaceCreated(SurfaceHolder holder) {
+    public void surfaceCreated(final SurfaceHolder holder) {
         Log.d(this.getClass().getName(), "surfaceCreated");
-        drawIndicatorAtPosition(this.currentPosition);
+        this.drawIndicatorAtPosition(this.currentPosition);
     }
 
     @Override
-    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+    public void surfaceChanged(final SurfaceHolder holder, final int format, final int width, final int height) {
         Log.d(this.getClass().getName(), "surfaceChanged");
-        this.updateWindowDimensions();
     }
 
     @Override
-    public void surfaceDestroyed(SurfaceHolder holder) {
+    public void surfaceDestroyed(final SurfaceHolder holder) {
         Log.d(this.getClass().getName(), "surfaceDestroyed");
     }
 
+    /**
+     * Draws the indicator for the given vector
+     *
+     * @param angle Angle at which the i
+     */
     public void drawIndicatorAtAngle(final double angle) {
-        Log.d(this.getClass().getName(), "Drawing at angle : " + angle);
         final float pos;
-        if (angle >= 90) {
-            pos = this.getAdjustedMaxWidth();
-        } else if (angle <= -90) {
-            pos = this.getPadding();
+        if (Math.abs(angle) >= ANGLE_RANGE) {
+            pos = angle > 0 ? this.width : 0;
         } else {
             final double percentage = angle / ANGLE_RANGE;
-            final float offset = Math.round((this.getAdjustedMaxWidth() - this.getPadding()) * percentage) / 2.0f;
-            pos = (this.windowDimensions.x / 2) + offset;
+            pos = (this.width / 2) + Math.round((this.width / 2) * percentage);
         }
-
-        if (Math.abs(pos - this.currentPosition) > DELTA) {
-            this.drawIndicatorAtPosition(pos);
-        }
+        this.drawIndicatorAtPosition(pos);
     }
 
     /**
@@ -194,10 +168,10 @@ public class IndicatorView extends SurfaceView implements SurfaceHolder.Callback
      * @param canvas Canvas in which the line will be drawn into
      */
     private void drawLine(final Canvas canvas) {
-        canvas.drawLine(padding,
-                windowDimensions.y / 2,
-                windowDimensions.x - padding,
-                windowDimensions.y / 2,
+        canvas.drawLine(0,
+                this.height / 2,
+                this.width,
+                this.height / 2,
                 linePaint);
     }
 
@@ -209,7 +183,7 @@ public class IndicatorView extends SurfaceView implements SurfaceHolder.Callback
      */
     private void drawPoint(final Canvas canvas, final float pos) {
         canvas.drawCircle(pos,
-                windowDimensions.y / 2,
+                this.height / 2,
                 DEFAULT_POINT_RADIUS,
                 pointPaint);
         this.currentPosition = pos;
@@ -235,19 +209,5 @@ public class IndicatorView extends SurfaceView implements SurfaceHolder.Callback
             Log.d(this.getClass().getName(), "This should get implemented at some point but who cares");
         }
         return -1;
-    }
-
-    /**
-     * Update windows dimensions from the views context
-     */
-    private void updateWindowDimensions() {
-        final Context context = this.getContext();
-        if (context instanceof Activity) {
-            final Activity parentActivity = (Activity) context;
-            final Display display = parentActivity.getWindowManager().getDefaultDisplay();
-            display.getSize(windowDimensions);
-        } else {
-            Log.d(this.getClass().getName(), "This should get implemented at some point but who cares");
-        }
     }
 }

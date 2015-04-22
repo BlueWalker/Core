@@ -13,15 +13,18 @@ import walker.blue.beacon.lib.beacon.BeaconBuilder;
 import walker.blue.core.lib.types.Building;
 import walker.blue.core.lib.types.DestinationTable;
 import walker.blue.core.lib.types.DestinationType;
-import walker.blue.path.lib.FloorConnector;
-import walker.blue.path.lib.GridNode;
-import walker.blue.path.lib.RectCoordinates;
+import walker.blue.path.lib.floor.FloorConnector;
+import walker.blue.path.lib.node.GridNode;
+import walker.blue.path.lib.node.RectCoordinates;
 
 /**
  * Class responsible for converting DynamoDB objects to java objects
  */
 public class AttrToJava {
 
+    /**
+     * Value used for the z point if the building
+     */
     private static final int NORTH_POINT_Z = 0;
 
     /**
@@ -37,6 +40,7 @@ public class AttrToJava {
 
     /**
      * Converts the given map of attribute values into a building object
+     *
      * @param rawData Map of strings to attribute values which comes from a
      *                dynamo db query
      * @return Building object. Null if the given map is not a valid
@@ -232,7 +236,7 @@ public class AttrToJava {
      * as values
      */
     private static DestinationTable parseBuildingDestinations(final Map<String, AttributeValue> rawData,
-                                                                         final List<List<List<GridNode>>> nodes) {
+                                                              final List<List<List<GridNode>>> nodes) {
         if (!rawData.containsKey(DDBConstants.DESTINATIONS) || nodes.isEmpty()) {
             return null;
         }
@@ -303,9 +307,10 @@ public class AttrToJava {
     }
 
     /**
+     * Parses the north point of the building from the given building data
      *
-     * @param rawData
-     * @return
+     * @param rawData data for the building being parsed
+     * @return the parsed north point
      */
     private static RectCoordinates parseNorthPoint(final Map<String, AttributeValue> rawData) {
         if (!rawData.containsKey(DDBConstants.NORTH_POINT)) {

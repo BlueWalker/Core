@@ -15,6 +15,7 @@ import java.util.Map;
  * Wrapper for the DynamoDB client
  */
 public class DynamoDBWrapper {
+
     /**
      * DynamoDB client being used
      */
@@ -49,51 +50,6 @@ public class DynamoDBWrapper {
             return null;
         }
     }
-
-//    /**
-//     * Inserts a JSON string into the appropriate DynamoDB database.
-//     * The string is generated from the given building's information.
-//     * @param building the Building object that must be inserted into
-//     *                 the database.
-//     */
-//    public void putBuilding(final Building building) {
-//        // Will validate that the string can be parsed prior to inserting and
-//        // if of a correct format, will use the uuid in the file for inserting
-//        // into the database.
-//        if(building != null) {
-//            String json = new Json2Building().toString(building);
-//
-//            DynamoDB dynamo = new DynamoDB(client);
-//
-//            Table table = dynamo.getTable(DdbCommon.TABLE_NAME);
-//
-//            Item item = new Item()
-//                    .withPrimaryKey(DdbCommon.BUILDING_ID, building.getUUID())
-//                    .withJSON(DdbCommon.JSON_DOCUMENT, json);
-//            table.putItem(item);
-//        }
-//    }
-//
-//    /**
-//     * Retrieves a Building object from the appropriate DynamoDB database.
-//     * The given string is used as a primary key to grab the building
-//     * information that is stored with the given UUID.
-//     * @param uuid the String that uniquely identifies the building within
-//     *             the database.
-//     * @return Building
-//     */
-//    public Building getBuilding(final String uuid) {
-//        DynamoDB dynamo = new DynamoDB(client);
-//
-//        Table table = dynamo.getTable(DdbCommon.TABLE_NAME);
-//
-//        Item documentItem =
-//                table.getItem(new GetItemSpec()
-//                        .withPrimaryKey(DdbCommon.BUILDING_ID, uuid)
-//                        .withAttributesToGet(DdbCommon.JSON_DOCUMENT));
-//
-//        return new Json2Building().toBuilding(documentItem.getJSONPretty(DdbCommon.JSON_DOCUMENT));
-//    }
 
     /**
      * Builder Class to help build the Attribute Map used to fetch data

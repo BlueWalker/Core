@@ -7,9 +7,9 @@ import java.util.Map;
 import java.util.Set;
 
 import walker.blue.beacon.lib.beacon.Beacon;
-import walker.blue.path.lib.FloorConnector;
-import walker.blue.path.lib.GridNode;
-import walker.blue.path.lib.RectCoordinates;
+import walker.blue.path.lib.floor.FloorConnector;
+import walker.blue.path.lib.node.GridNode;
+import walker.blue.path.lib.node.RectCoordinates;
 
 public class Building {
 
@@ -51,7 +51,7 @@ public class Building {
      */
     protected DestinationTable destinationTable;
     /**
-     *
+     * Represents a vector that points to north within the building
      */
     protected RectCoordinates northPoint;
 
@@ -224,12 +224,36 @@ public class Building {
         this.destinationTable = destinationTable;
     }
 
+    /**
+     * Getter for the northPoint ofield
+     *
+     * @return current value of the northPoint field
+     */
     public RectCoordinates getNorthPoint() {
         return this.northPoint;
     }
 
+    /**
+     * Sets the northPoint field to the given value
+     *
+     * @param northPoint new value of the northPoint
+     */
     public void setNorthPoint(final RectCoordinates northPoint) {
         this.northPoint = northPoint;
+    }
+
+    /**
+     * Checks if the search space of the building contains the following point
+     *
+     * @param x Z value
+     * @param y Y value
+     * @param z Z value
+     * @return boolean indicating whether that point exists
+     */
+    public boolean searchSpaceContains(final int x, final int y, final int z) {
+        return this.searchSpace.size() > z &&
+                this.searchSpace.get(z).size() > y &&
+                this.searchSpace.get(z).get(y).size() > x;
     }
 
     /**

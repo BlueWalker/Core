@@ -5,7 +5,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import walker.blue.path.lib.GridNode;
+import walker.blue.path.lib.node.GridNode;
 
 /**
  * Table designed to store GridNode objects representing destinations

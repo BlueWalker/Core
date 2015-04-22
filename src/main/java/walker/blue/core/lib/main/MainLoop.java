@@ -12,13 +12,16 @@ import java.util.concurrent.Future;
 import walker.blue.beacon.lib.beacon.Beacon;
 import walker.blue.core.lib.beacon.SyncBeaconScanClient;
 import walker.blue.core.lib.common.ProcessCommon;
+import walker.blue.core.lib.direction.OrientationManager;
+import walker.blue.core.lib.indicator.IndicatorView;
 import walker.blue.core.lib.init.InitializeProcess;
+import walker.blue.core.lib.speech.SpeechSubmitHandler;
 import walker.blue.core.lib.types.Building;
 import walker.blue.core.lib.user.UserState;
 import walker.blue.core.lib.user.UserTracker;
-import walker.blue.path.lib.GridAStar;
-import walker.blue.path.lib.GridNode;
-import walker.blue.path.lib.RectCoordinates;
+import walker.blue.path.lib.finder.GridAStar;
+import walker.blue.path.lib.node.GridNode;
+import walker.blue.path.lib.node.RectCoordinates;
 import walker.blue.tri.lib.Trilateration;
 
 /**
@@ -41,11 +44,11 @@ public class MainLoop extends ProcessCommon implements Callable<MainLoop.Output>
     /**
      * The zone offset used in the user tracker
      */
-    private static final double ZONE_OFFSET = 3.0f;
+    private static final double ZONE_OFFSET = 2.0f;
     /**
      * The destination offset used in the user tracker
      */
-    private static final double DESTINATION_OFFSET = 2.0f;
+    private static final double DESTINATION_OFFSET = 1.5f;
 
     /**
      * Trilatertion object used to calculate the users location
@@ -73,20 +76,75 @@ public class MainLoop extends ProcessCommon implements Callable<MainLoop.Output>
     private UserStateHandler userStateHandler;
 
     /**
-     * Contructor, sets and initializes the fields using the given values
+     * Consturctor sets the fields using the given values
      *
-     * @param initOutput Output of the InitializeProcess used before the
-     *                   MainLoop
-     * @param context Context under which the MainLoop is being run
-     * @param userStateHandler Handler in charge of the behavior of the
-     *                         application once each state appears
+     * @param initOutput output of the initialize process
+     * @param context context under which the main loop is being run
+     * @param userStateHandler handler for the user states
      */
     public MainLoop(final InitializeProcess.Output initOutput,
                     final Context context,
                     final UserStateHandler userStateHandler) {
+        this(initOutput, context, userStateHandler, null, null, null);
+    }
+
+    /**
+     * Consturctor sets the fields using the given values
+     *
+     * @param initOutput output of the initialize process
+     * @param context context under which the main loop is being run
+     * @param userStateHandler handler for the user states
+     * @param orientationManager orientation manager user to get data
+     *                           for the user direction
+     */
+    public MainLoop(final InitializeProcess.Output initOutput,
+                    final Context context,
+                    final UserStateHandler userStateHandler,
+                    final OrientationManager orientationManager) {
+        this(initOutput, context, userStateHandler, orientationManager, null, null);
+    }
+
+    /**
+     * Consturctor sets the fields using the given values
+     *
+     * @param initOutput output of the initialize process
+     * @param context context under which the main loop is being run
+     * @param userStateHandler handler for the user states
+     * @param speechSubmitHandler speech submitter used in the main loop
+     */
+    public MainLoop(final InitializeProcess.Output initOutput,
+                    final Context context,
+                    final UserStateHandler userStateHandler,
+                    final SpeechSubmitHandler speechSubmitHandler) {
+        this(initOutput, context, userStateHandler, null, speechSubmitHandler, null);
+    }
+
+    /**
+     * Contructor, sets and initializes the fields using the given values
+     *
+     * @param initOutput output of the initialize process
+     * @param context context under which the main loop is being run
+     * @param userStateHandler handler for the user states
+     * @param orientationManager orientation manager user to get data
+     *                           for the user direction
+     * @param speechSubmitHandler speech submitter used in the main loop
+     * @param indicatorView indicator view being displayed throughout the main loop
+     */
+    public MainLoop(final InitializeProcess.Output initOutput,
+                    final Context context,
+                    final UserStateHandler userStateHandler,
+                    final OrientationManager orientationManager,
+                    final SpeechSubmitHandler speechSubmitHandler,
+                    final IndicatorView indicatorView) {
         this.trilateration = initOutput.getTrilateration();
         this.building = initOutput.getBuilding();
-        this.userTracker = new UserTracker(initOutput.getPath(), ZONE_OFFSET, DESTINATION_OFFSET);
+        this.userTracker = new UserTracker(speechSubmitHandler,
+                initOutput.getPath(),
+                ZONE_OFFSET,
+                DESTINATION_OFFSET,
+                orientationManager,
+                indicatorView,
+                this.building);
         this.userTracker.updateUserState(initOutput.getCurrentLocation().getLocation());
         this.scanClient = new SyncBeaconScanClient(context);
         this.scanClient.setScanTime(CLIENT_SCAN_TIME);
@@ -105,7 +163,7 @@ public class MainLoop extends ProcessCommon implements Callable<MainLoop.Output>
             Log.d(this.getClass().getName(), String.format(LOG_NUM_BEACONS, this.beacons.size()));
             this.logBeaconRSSIVals(this.beacons);
             final GridNode currentLocation = this.getUserLocationProximity(beacons, building);
-            Log.d(this.getClass().getName(), "current location: " + currentLocation.toString());
+//            final GridNode currentLocation = this.debugLocationGet();
             this.userTracker.updateUserState(currentLocation.getLocation());
             this.userStateHandler.newStateFound(this.userTracker.getUserState());
         }
@@ -119,56 +177,6 @@ public class MainLoop extends ProcessCommon implements Callable<MainLoop.Output>
     }
 
     /**
-     * Updates the class in order to set the current path of the user to the
-     * given path
-     *
-     * @param path New path being set for the user
-     */
-    public void setNewPath(final List<GridNode> path) {
-        this.userTracker = new UserTracker(path, ZONE_OFFSET, DESTINATION_OFFSET);
-    }
-
-    public UserTracker getUserTracker() {
-        return this.userTracker;
-    }
-
-    /**
-     * Iterator for subpaht using in the debugLocationGet method
-     */
-    private Iterator<GridNode> currentSubPath;
-    /**
-     * Pathfinder used by the debugLocationGet method
-     */
-    private GridAStar aStar = new GridAStar();
-
-    /**
-     * Method used to test the user tracker
-     *
-     * @return GridNode
-     */
-    private GridNode debugLocationGet() {
-        if (currentSubPath == null || !currentSubPath.hasNext()) {
-            this.currentSubPath = this.aStar.findPath(this.building.getSearchSpace().get(3),
-                    rc2Gn(this.userTracker.getLatestLocation()),
-                    this.userTracker.getNextNode()).iterator();
-        }
-        return currentSubPath.next();
-    }
-
-    /**
-     * Converts the given RectCoordinates to a GridNode object
-     *
-     * @param rc RectCoordinates being converted to a GridNode object
-     * @return GridNode object correspoinding to the given RectCoordinates
-     */
-    private GridNode rc2Gn(final RectCoordinates rc) {
-        return this.building.getSearchSpace()
-                .get(rc.getZ())
-                .get(rc.getY())
-                .get(rc.getX());
-    }
-
-    /**
      * Logs the given Beacons
      *
      * @param beacons Beacons being logged
@@ -177,6 +185,7 @@ public class MainLoop extends ProcessCommon implements Callable<MainLoop.Output>
         for (final Beacon b : beacons) {
             Log.d(this.getClass().getName(),
                     String.format(LOG_BEACON_VALS,b.getMajor(), b.getMinor(), b.getMeasuredRSSIValues().toString()));
+            Log.d(this.getClass().getName(), "\t" + b.getAverageRSSIValue());
         }
     }
 
@@ -200,5 +209,94 @@ public class MainLoop extends ProcessCommon implements Callable<MainLoop.Output>
         public UserState getUserState() {
             return this.userState;
         }
+    }
+
+    /* ############### DEBUG STUFF ############### */
+
+    /**
+     * Iterator for subpaht using in the debugLocationGet method
+     */
+    private Iterator<GridNode> currentSubPath;
+    /**
+     * Iterator for subpaht using in the debugLocationGet method
+     */
+    private Iterator<GridNode> currentWrongSubPath;
+    /**
+     * Pathfinder used by the debugLocationGet method
+     */
+    private GridAStar aStar = new GridAStar();
+    private int followCourse = 0;
+
+    public void setFollowCourse(final int followCourse) {
+        this.followCourse = followCourse;
+    }
+
+    /**
+     * Method used to test the user tracker
+     *
+     * @return GridNode
+     */
+    private GridNode debugLocationGet() {
+        switch (this.followCourse ) {
+            case 0:
+                return this.debugLocationGetOnCourse();
+            case 1:
+                return this.debugLocationGetOffCourse();
+            case 2:
+                return this.debugLocationGetWarn();
+            default:
+                return this.debugLocationGetOnCourse();
+        }
+    }
+
+    private GridNode debugLocationGetOnCourse() {
+        if (currentSubPath == null || !currentSubPath.hasNext()) {
+            this.currentSubPath = this.aStar.findPath(this.building.getSearchSpace().get(3),
+                    rc2Gn(this.userTracker.getLatestLocation()),
+                    this.userTracker.getNextNode()).iterator();
+        }
+
+        return currentSubPath.next();
+    }
+
+    private GridNode debugLocationGetOffCourse() {
+        if (currentWrongSubPath == null || !currentWrongSubPath.hasNext()) {
+            final GridNode wrongDestination = this.building.getSearchSpace().get(3).get(38).get(17); // Room 432
+            final List<GridNode> currentWrongSubPathList = this.aStar.findPath(this.building.getSearchSpace().get(3),
+                    rc2Gn(this.userTracker.getLatestLocation()),
+                    wrongDestination);
+            for (final GridNode node : currentWrongSubPathList) {
+            }
+            this.currentWrongSubPath = currentWrongSubPathList.iterator();
+        }
+        return currentWrongSubPath.next();
+    }
+
+    private GridNode debugLocationGetWarn() {
+        if (currentWrongSubPath == null) {
+            final GridNode wrongDestination = this.building.getSearchSpace().get(3).get(38).get(19); // Room 432
+            final List<GridNode> currentWrongSubPathList = this.aStar.findPath(this.building.getSearchSpace().get(3),
+                    rc2Gn(this.userTracker.getLatestLocation()),
+                    wrongDestination);
+            for (final GridNode node : currentWrongSubPathList) {
+            }
+            this.currentWrongSubPath = currentWrongSubPathList.iterator();
+        } else if (!currentWrongSubPath.hasNext()) {
+            return this.building.getSearchSpace().get(3).get(38).get(19);
+        }
+        return currentWrongSubPath.next();
+    }
+
+    /**
+     * Converts the given RectCoordinates to a GridNode object
+     *
+     * @param rc RectCoordinates being converted to a GridNode object
+     * @return GridNode object correspoinding to the given RectCoordinates
+     */
+    private GridNode rc2Gn(final RectCoordinates rc) {
+        return this.building.getSearchSpace()
+                .get(rc.getZ())
+                .get(rc.getY())
+                .get(rc.getX());
     }
 }

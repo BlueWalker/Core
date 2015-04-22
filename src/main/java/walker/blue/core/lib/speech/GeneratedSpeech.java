@@ -6,6 +6,7 @@ package walker.blue.core.lib.speech;
  */
 public class GeneratedSpeech {
 
+
     /**
      * Distance until the next event
      */
@@ -72,6 +73,24 @@ public class GeneratedSpeech {
             case REACHING_DESTINATION_AHEAD:
                 return  String.format(this.event.getFormat(),
                         this.distance);
+            default:
+                return super.toString();
+        }
+    }
+
+    /**
+     * Converts the generated speech to its action string
+     *
+     * @return action string for the generated speech
+     */
+    public String toActionString() {
+        switch (this.event) {
+            case TURN:
+            case REACHING_DESTINATION:
+                return  String.format(this.event.getActionFormat(),
+                        this.direction.name().toLowerCase());
+            case REACHING_DESTINATION_AHEAD:
+                return this.event.getActionFormat();
             default:
                 return super.toString();
         }

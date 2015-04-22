@@ -10,6 +10,7 @@ public enum NodeDirection {
     BEHIND("behind");
 
     private String msg;
+
     NodeDirection(final String msg) {
         this.msg = msg;
     }

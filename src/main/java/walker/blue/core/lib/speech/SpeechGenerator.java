@@ -2,8 +2,8 @@ package walker.blue.core.lib.speech;
 
 import java.util.List;
 
-import walker.blue.path.lib.GridNode;
-import walker.blue.path.lib.RectCoordinates;
+import walker.blue.path.lib.node.GridNode;
+import walker.blue.path.lib.node.RectCoordinates;
 
 /**
  * Class in charge of generating the speech that will be spoken to the user
@@ -13,7 +13,7 @@ public class SpeechGenerator {
     /**
      * delta value used to compare doubles
      */
-    private static final double DELTA = 1.5f;
+    private static final double DELTA_DISTANCE = 1.0f;
 
     /**
      * Current path for the user
@@ -36,7 +36,7 @@ public class SpeechGenerator {
      * @param nextWaypoint Next waypoint within the path
      * @return Speech generated that will be spoken to the user
      */
-    public GeneratedSpeech getSpeechForNodes(final GridNode currentLocation, final GridNode nextWaypoint) {
+    public GeneratedSpeech getSpeechForNodes(final RectCoordinates currentLocation, final GridNode nextWaypoint) {
         final double distanceBetweenNodes = this.getDistance(currentLocation, nextWaypoint);
         final NodeEvent event = this.getEventAtNextNode(nextWaypoint);
         final NodeDirection direction = this.getDirectionForEvent(event, currentLocation, nextWaypoint);
@@ -52,15 +52,15 @@ public class SpeechGenerator {
      * @return Direction of the given event
      */
     private NodeDirection getDirectionForEvent(final NodeEvent event,
-                                               final GridNode currentLocation,
+                                               final RectCoordinates currentLocation,
                                                final GridNode nextWaypoint) {
         switch (event) {
             case TURN:
                 return this.resolveDirectionForTurn(currentLocation, nextWaypoint);
             case REACHING_DESTINATION:
-                return this.resolveDirectionForDestination(currentLocation,nextWaypoint);
+                return this.resolveDirectionForDestination(currentLocation, nextWaypoint);
             case REACHING_DESTINATION_AHEAD:
-                return this.resolveDirectionForDestination(currentLocation,nextWaypoint);
+                return this.resolveDirectionForDestination(currentLocation, nextWaypoint);
         }
         return null;
     }
@@ -72,14 +72,14 @@ public class SpeechGenerator {
      * @param nextWaypoint Next waypoint within the path
      * @return Direction of the given turn event
      */
-    private NodeDirection resolveDirectionForTurn(final GridNode userLocation, final GridNode nextWaypoint) {
+    private NodeDirection resolveDirectionForTurn(final RectCoordinates userLocation, final GridNode nextWaypoint) {
         final int nextIndex = this.path.indexOf(nextWaypoint);
         final GridNode nextNextNode = this.path.get(nextIndex + 1);
         final int crossProduct = this.getNodeCrossProduct(userLocation, nextWaypoint, nextNextNode);
         if (crossProduct < 0) {
-            return NodeDirection.RIGHT;
-        } else if (crossProduct > 0) {
             return NodeDirection.LEFT;
+        } else if (crossProduct > 0) {
+            return NodeDirection.RIGHT;
         } else {
             return  NodeDirection.BEHIND;
         }
@@ -93,14 +93,14 @@ public class SpeechGenerator {
      * @param nextWaypoint Next waypoint within the path
      * @return Direction of the given turn event
      */
-    private NodeDirection resolveDirectionForDestination(final GridNode userLocation, final GridNode nextWaypoint) {
+    private NodeDirection resolveDirectionForDestination(final RectCoordinates userLocation, final GridNode nextWaypoint) {
         final int nextIndex = this.path.indexOf(nextWaypoint);
         final GridNode nextNextNode = this.path.get(nextIndex + 1);
         final int crossProduct = this.getNodeCrossProduct(userLocation, nextWaypoint, nextNextNode);
         if (crossProduct < 0) {
-            return NodeDirection.RIGHT;
-        } else if (crossProduct > 0) {
             return NodeDirection.LEFT;
+        } else if (crossProduct > 0) {
+            return NodeDirection.RIGHT;
         } else {
             // We assume this always means ahead since we currently dont
             // have the ability to get the direction the user is facing
@@ -119,10 +119,38 @@ public class SpeechGenerator {
      * @return cross product of the vectors fromed by the nodes
      */
     private int getNodeCrossProduct(final GridNode tail, final GridNode mid, final GridNode head) {
-        final int tailToHeadX = head.getLocation().getX() - tail.getLocation().getX();
-        final int tailToHeadY = head.getLocation().getY() - tail.getLocation().getY();
-        final int midToHeadX = head.getLocation().getX() - mid.getLocation().getX();
-        final int midToHeadY = head.getLocation().getY() - mid.getLocation().getY();
+        return this.getNodeCrossProduct(tail.getLocation(), mid.getLocation(), head.getLocation());
+    }
+
+    /**
+     * Gets the cross product of the vector from tail to mid crossed with the
+     * vector from tail to head
+     *
+     * @param tail Beginning node
+     * @param mid Middle node
+     * @param head Final node
+     * @return cross product of the vectors fromed by the nodes
+     */
+    private int getNodeCrossProduct(final RectCoordinates tail, final GridNode mid, final GridNode head) {
+        return this.getNodeCrossProduct(tail, mid.getLocation(), head.getLocation());
+    }
+
+    /**
+     * Gets the cross product of the vector from tail to mid crossed with the
+     * vector from tail to head
+     *
+     * @param tail Beginning node
+     * @param mid Middle node
+     * @param head Final node
+     * @return cross product of the vectors fromed by the nodes
+     */
+    private int getNodeCrossProduct(final RectCoordinates tail,
+                                    final RectCoordinates mid,
+                                    final RectCoordinates head) {
+        final int tailToHeadX = head.getX() - tail.getX();
+        final int tailToHeadY = head.getY() - tail.getY();
+        final int midToHeadX = head.getX() - mid.getX();
+        final int midToHeadY = head.getY() - mid.getY();
         return this.crossProduct2D(tailToHeadX, tailToHeadY, midToHeadX, midToHeadY);
     }
 
@@ -139,8 +167,7 @@ public class SpeechGenerator {
         } else {
             // Not on the last node yet
             final GridNode nextNextNode = this.path.get(nextNodeIndex + 1);
-            if (!nextNextNode.isTraversable() &&
-                    Math.abs(this.getDistance(nextNextNode, nextNode) - DELTA) <= 0) {
+            if (this.getDistance(nextNextNode, nextNode) <= DELTA_DISTANCE) {
                 return NodeEvent.REACHING_DESTINATION;
             } else {
                 return NodeEvent.TURN;
@@ -156,9 +183,29 @@ public class SpeechGenerator {
      * @return the calculated distance between the nodes
      */
     private double getDistance(final GridNode a, final GridNode b) {
-        final RectCoordinates aLoc = a.getLocation();
-        final RectCoordinates bLoc = b.getLocation();
-        return Math.sqrt(Math.pow(aLoc.getX() - bLoc.getX(), 2) + Math.pow(aLoc.getY() - bLoc.getY(), 2));
+        return this.getDistance(a.getLocation(), b.getLocation());
+    }
+
+    /**
+     * Calculates the distance between the two given nodes
+     *
+     * @param a  node a
+     * @param b node b
+     * @return the calculated distance between the nodes
+     */
+    private double getDistance(final RectCoordinates a, final GridNode b) {
+        return this.getDistance(a, b.getLocation());
+    }
+
+    /**
+     * Calculates the distance between the two given nodes
+     *
+     * @param a  node a
+     * @param b node b
+     * @return the calculated distance between the nodes
+     */
+    private double getDistance(final RectCoordinates a, final RectCoordinates b) {
+        return Math.sqrt(Math.pow(a.getX() - b.getX(), 2) + Math.pow(a.getY() - b.getY(), 2));
     }
 
     /**
