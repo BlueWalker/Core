@@ -1,0 +1,35 @@
+apply plugin: 'com.jfrog.bintray'
+
+def hasBintrayProperties() {
+    return project.hasProperty('BINTRAY_USERNAME') && project.hasProperty('BINTRAY_KEY')
+}
+
+if (hasBintrayProperties()) {
+
+    bintrayUpload.dependsOn sourcesJar, javadocJar, assemble
+    bintrayUpload.dependsOn("generatePomFileForMavenPublication")
+
+    bintray {
+        user = BINTRAY_USERNAME
+        key = BINTRAY_KEY
+        publications = ['maven']
+        publish = true
+        pkg {
+            repo = 'maven'
+            name = project.BINTRAY_NAME
+            desc = project.DESCRIPTION
+            websiteUrl = project.URL
+            issueTrackerUrl = project.ISSUES_URL
+            vcsUrl = project.SCM
+            licenses = ['MIT']
+            labels = []
+            publicDownloadNumbers = true
+            version {
+                name = project.VERSION
+                desc = project.DESCRIPTION
+            }
+        }
+    }
+}
+
+

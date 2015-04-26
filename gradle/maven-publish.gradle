@@ -1,0 +1,64 @@
+apply plugin: 'maven-publish'
+
+def hasBintrayProperties() {
+    return project.hasProperty('BINTRAY_USERNAME') && project.hasProperty('BINTRAY_KEY')
+}
+
+if (hasBintrayProperties()) {
+    apply plugin: 'maven-publish'
+
+    publish.dependsOn sourcesJar, javadocJar, assemble
+    publish.dependsOn("generatePomFileForMavenPublication")
+
+    group = project.GROUP
+    version = project.VERSION
+    description = project.DESCRIPTION
+
+    publishing {
+        publications {
+            maven(MavenPublication) {
+                artifact "${project.buildDir}/outputs/aar/${project.name}-release.aar"
+                artifact sourcesJar
+                artifact javadocJar
+
+                pom.withXml {
+                    def Node root = asNode()
+                    root.appendNode('name', project.BINTRAY_NAME)
+                    root.appendNode('description', project.description)
+                    root.appendNode('url', project.URL)
+
+                    def issues = root.appendNode('issueManagement')
+                    issues.appendNode('system', 'github')
+                    issues.appendNode('url', project.ISSUES_URL)
+
+                    def scm = root.appendNode('scm')
+                    scm.appendNode('url', project.SCM)
+                    scm.appendNode('connection', project.CONNECTION)
+                    scm.appendNode('developerConnection', project.DEV_CONNECTION)
+
+                    def license = root.appendNode('licenses').appendNode('license')
+                    license.appendNode('name', 'MIT')
+                    license.appendNode('url', 'http://opensource.org/licenses/mit-license.php')
+                    license.appendNode('distribution', 'repo')
+
+                    def dev = root.appendNode('developers').appendNode('developer')
+                    dev.appendNode('id', project.ORG)
+                    dev.appendNode('name', project.ORG)
+                    dev.appendNode('organization', project.ORG)
+                    dev.appendNode('organizationUrl', project.ORG_URL)
+
+                    def deps = root.appendNode('dependencies')
+                    configurations.compile.allDependencies.each {
+                        if (it.hasProperty('transitive') && it.transitive) {
+                            def dep = deps.appendNode('dependency')
+                            dep.appendNode('groupId', it.group)
+                            dep.appendNode('artifactId', it.name)
+                            dep.appendNode('version', it.version)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
